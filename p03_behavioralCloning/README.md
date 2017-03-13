@@ -1,7 +1,5 @@
 # **Behavioral Cloning**
 
-## Girish 
-
 ### Project 3 - Behavioral Cloning Write-up
 
 ---
