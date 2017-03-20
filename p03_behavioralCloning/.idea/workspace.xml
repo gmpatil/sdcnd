@@ -2,11 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="ed701cc3-4211-40ce-94d9-1f8b43f22473" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/markdown-exported-files.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/markdown-navigator.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/markdown-navigator/profiles_settings.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/vcs.xml" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/train_network.py" afterPath="" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -28,7 +24,21 @@
     <favorites_list name="p03_behavioralCloning" />
   </component>
   <component name="FileEditorManager">
-    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300" />
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file leaf-file-name="README.md" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/README.md">
+          <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+            <state split_layout="SPLIT">
+              <first_editor relative-caret-position="0">
+                <caret line="0" column="24" lean-forward="false" selection-start-line="0" selection-start-column="24" selection-end-line="0" selection-end-column="24" />
+                <folding />
+              </first_editor>
+              <second_editor />
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -68,6 +78,7 @@
         <option value="$PROJECT_DIR$/model.py" />
         <option value="$PROJECT_DIR$/Work.py" />
         <option value="$PROJECT_DIR$/writeup_report.md" />
+        <option value="$PROJECT_DIR$/README.md" />
       </list>
     </option>
   </component>
@@ -113,7 +124,7 @@
   </component>
   <component name="PropertiesComponent">
     <property name="settings.editor.selected.configurable" value="configurable.group.language" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/p4_AdvancedLaneFinding" />
     <property name="full.screen.before.presentation.mode" value="false" />
   </component>
   <component name="RecentsManager">
@@ -367,7 +378,21 @@
       <option name="project" value="LOCAL" />
       <updated>1489383761599</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="After updating writeup_report.md">
+      <created>1489385421546</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1489385421546</updated>
+    </task>
+    <task id="LOCAL-00004" summary="After updating writeup_report.md">
+      <created>1489385509907</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1489385509907</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TodoView">
@@ -515,7 +540,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/README.md" />
+    <entry file="file://$PROJECT_DIR$/README_old.md" />
     <entry file="file://$PROJECT_DIR$/model.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
@@ -593,7 +618,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/README.md" />
+    <entry file="file://$PROJECT_DIR$/README_old.md" />
     <entry file="file://$PROJECT_DIR$/writeup_template.md" />
     <entry file="file://$PROJECT_DIR$/writeup_report.md" />
     <entry file="file://$PROJECT_DIR$/model.py">
@@ -620,7 +645,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/README.md" />
+    <entry file="file://$PROJECT_DIR$/README_old.md" />
     <entry file="file://$PROJECT_DIR$/writeup_template.md" />
     <entry file="file://$PROJECT_DIR$/writeup_report.md" />
     <entry file="file://$PROJECT_DIR$/model.py">
@@ -640,7 +665,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/README.md" />
+    <entry file="file://$PROJECT_DIR$/README_old.md" />
     <entry file="file://$PROJECT_DIR$/writeup_template.md" />
     <entry file="file://$USER_HOME$/anaconda3/envs/carnd-term1/lib/python3.5/site-packages/flask/app.py">
       <provider selected="true" editor-type-id="text-editor">
@@ -680,7 +705,7 @@
     <entry file="file://$PROJECT_DIR$/epochVsMSELoss4.png" />
     <entry file="file://$PROJECT_DIR$/epochVsMSELoss3.png" />
     <entry file="file://$PROJECT_DIR$/epochVsMSELoss.png" />
-    <entry file="file://$PROJECT_DIR$/README.md">
+    <entry file="file://$PROJECT_DIR$/README_old.md">
       <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
         <state split_layout="SPLIT">
           <first_editor relative-caret-position="150">
@@ -762,6 +787,17 @@
           <folding>
             <element signature="e#0#78#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="0">
+            <caret line="0" column="24" lean-forward="false" selection-start-line="0" selection-start-column="24" selection-end-line="0" selection-end-column="24" />
+            <folding />
+          </first_editor>
+          <second_editor />
         </state>
       </provider>
     </entry>
