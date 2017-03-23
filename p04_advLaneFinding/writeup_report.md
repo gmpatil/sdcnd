@@ -94,13 +94,17 @@ Using the above steps, below is sample of undistorted test images. See method `u
 ![alt text][image2]
 
 ####2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+I used a combination of color and gradient thresholds to generate a binary image 
+(thresholding steps at lines # through # in `another_file.py`).  Here's an example of my 
+output for this step.  
 
 Below is sample of binary color image with green channel showing Sobel X gradients in the threshold and blue channel 
 showing  
 
+Binary image of test1.png 
 ![alt text][image3]
 
+Binary image of test4.png  
 ![alt text][image32]
 
 ####3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
@@ -113,6 +117,7 @@ src = np.float32(
     [((img_size[0] / 6) - 10), img_size[1]],
     [(img_size[0] * 5 / 6) + 60, img_size[1]],
     [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
+        
 dst = np.float32(
     [[(img_size[0] / 4), 0],
     [(img_size[0] / 4), img_size[1]],

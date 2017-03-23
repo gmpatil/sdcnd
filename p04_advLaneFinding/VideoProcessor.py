@@ -18,12 +18,12 @@ class VideoProcessor(object):
         '''
         self.cam = camera
 
-    def thresholded_binary(img, s_thresh=(170, 255), sx_thresh=(20, 100)):
+    def thresholded_binary(self, img, s_thresh=(170, 255), sx_thresh=(20, 100)):
         h_thresh = (15, 100)
 
-        img = np.copy(img)
+        img2 = np.copy(img)
         # Convert to HSV color space and separate the V channel
-        hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HLS).astype(np.float)
+        hsv = cv2.cvtColor(img2, cv2.COLOR_RGB2HLS).astype(np.float)
         h_channel = hsv[:, :, 0]
         s_channel = hsv[:, :, 2]
         # Sobel x
@@ -54,6 +54,14 @@ class VideoProcessor(object):
 
         return color_binary
 
+    def warper(self, img, src, dst):
+
+        # Compute and apply perpective transform
+        img_size = (img.shape[1], img.shape[0])
+        M = cv2.getPerspectiveTransform(src, dst)
+        warped = cv2.warpPerspective(img, M, img_size, flags=cv2.INTER_NEAREST)  # keep same size as input image
+
+        return warped
 
 
     def pipeline(self, img):
