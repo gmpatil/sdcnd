@@ -4,78 +4,138 @@ import matplotlib.pyplot as plt
 from Camera import Camera
 from VideoProcessor import VideoProcessor
 
-
-CALIBRATION_IMG_DIR = "./camera_cal/"
 TEST_IMG_DIR = "./test_images/"
 
+def getOrigBinWarpedImages(imageFileNames, vidp):
+    '''
+    Takes list of image file names, creates image, binary image and warped image for each and returns
+    all the images in array of array.
+
+    :param imageFileNames:
+    :param vidp:
+    :return:
+    '''
+    images = []
+    for imgFileName in imageFileNames:
+        img = cv2.imread(TEST_IMG_DIR + imgFileName)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        imgSeries = vidp.get_binary_warped_image(img)
+        images.append(imgSeries)
+
+    return images
 
 
+def getOrigBinWarpedImages2(imageFileNames, vidp):
+    '''
+    Takes list of image file names, creates image, binary image and warped image for each and returns
+    all the images in array of array.
+
+    :param imageFileNames:
+    :param vidp:
+    :return:
+    '''
+
+    first = True
+
+    images = []
+    for imgFileName in imageFileNames:
+        img = cv2.imread(TEST_IMG_DIR + imgFileName)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        (imgSeries, Minv) = vidp.get_binary_warped_image(img)
+        if (first):
+            first = False
+            outImg = vidp.poly_fit_first(imgSeries[-1])
+            imgSeries[-1] = vidp.visualize_polyfit(imgSeries[-1], outImg)
+            # vidp.measure_radius()
+            # vidp.draw_on_orig(imgSeries[0], imgSeries[2], Minv)
+
+        else:
+            outImg = vidp.poly_fit(imgSeries[-1])
+            imgSeries[-1] = vidp.visualize_polyfit2(imgSeries[-1], outImg)
+            vidp.measure_radius()
+            vidp.draw_on_orig(imgSeries[0], imgSeries[2], Minv)
+
+        images.append(imgSeries)
+
+    return images
+
+
+
+def displayOrigBinWarpedImages(images, histo=False):
+    '''
+    Display images in row x 3 images.
+
+    :param images:
+    :param histo: display histogram image
+    :return:
+    '''
+    if (histo):
+        f, axarr = plt.subplots(len(images), 2, figsize=(4 * 2, len(images) * 4))
+    else:
+        f, axarr = plt.subplots(len(images), 3, figsize=(4 * 3, len(images) * 4))
+
+    cnt = 0
+    for imgs in images:
+
+        if (histo):
+            img = imgs[2]
+            histogram = np.sum(img[int(img.shape[0] / 2):, :], axis=0) # okay, may be more reliable during sharp curve
+            # histogram = np.sum(img[int(img.shape[0]* 3 / 4):, :], axis=0)  # bad
+            # histogram = np.sum(img[int(img.shape[0]/ 4):, :], axis=0) # good
+            # histogram = np.sum(img[:, :], axis=0)
+            axarr[cnt][0].imshow(imgs[2])
+            axarr[cnt][0].set_title('Warped ' + str(cnt + 1))
+
+            axarr[cnt][1].plot(histogram)
+            axarr[cnt][1].set_title('Hist ' + str(cnt + 1))
+        else:
+            axarr[cnt][0].imshow(imgs[0])
+            axarr[cnt][0].set_title('Img ' + str(cnt + 1))
+            axarr[cnt][1].imshow(imgs[1])
+            axarr[cnt][1].set_title('Bin ' + str(cnt + 1))
+            axarr[cnt][2].imshow(imgs[2])
+            axarr[cnt][2].set_title('Warped ' + str(cnt + 1))
+
+        cnt += 1
+
+    # plt.tight_layout()
+    plt.show()
 
 
 def main():
-    cam = Camera(load=True)
+
+    # cam = Camera(load=False)
     # ret, mtx, dist, rvecs, tvecs = cam.calibrate_camera(save=True)
     # cam.undistort_calibration_images()
     # cam.undistort_test_images()
     #
-    img = cv2.imread(TEST_IMG_DIR + "test4.jpg")
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img = cam.undistort(img)
 
+    cam = Camera(load=True)
     video = VideoProcessor(cam)
-    bin = video.thresholded_binary(img)
 
-    plt.imshow(bin)
-    plt.show()
+    # load test images, undistort, convert binary and warp to bird view perspective.
+    # images = getOrigBinWarpedImages(["straight_lines1.jpg",
+    #                                 # "straight_lines2.jpg",
+    #                                 # "test1.jpg",
+    #                                  "test2.jpg",
+    #                                 # "test3.jpg",
+    #                                 # "test4.jpg",
+    #                                 # "test5.jpg",
+    #                                  "test6.jpg",
+    #                                  ], video)
+    # # displayOrigBinWarpedImages(images, histo=False)
+    # displayOrigBinWarpedImages(images, histo=True)
 
-
-    # # Test code to identify points for perspective transformation
-    # img = cv2.imread(TEST_IMG_DIR + "straight_lines1.jpg")
-    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    # img = cam.undistort(img)
-    # #
-    # video = VideoProcessor(cam)
-    # bin = video.thresholded_binary(img)
-    #
-    # plt.imshow(bin)
-    # plt.show()
-
-
-    img_size = (img.shape[1], img.shape[0])
-
-    print (img_size)
-
-    print (bin.shape)
-
-
-    # src = np.float32(
-    #     [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    #      [((img_size[0] / 6) - 10), img_size[1]],
-    #      [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    #      [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-
-    # src = np.float32(
-    #     [[559.767, 477.491],    # 0.437 * 1280, 0.663 * 720
-    #      [294.809, 659.737],    # 0.230 * 1280, 0.916 * 720
-    #      [1011.18, 659.737],    # 0.790 * 1280, 0.916 * 720
-    #      [726.593, 477.491]])   # 0.568 * 1280, 0.663 * 720
-
-    src = np.float32(
-        [[(img_size[0] * 0.437), img_size[1] * 0.663],
-         [(img_size[0] * 0.230), img_size[1] * 0.916],
-         [(img_size[0] * 0.790), img_size[1] * 0.916],
-         [(img_size[0] * 0.568), img_size[1] * 0.663]])
-
-    dst = np.float32(
-        [[(img_size[0] / 4), 0],
-         [(img_size[0] / 4), img_size[1]],
-         [(img_size[0] * 3 / 4), img_size[1]],
-         [(img_size[0] * 3 / 4), 0]])
-
-    bin = video.warper(bin, src, dst)
-    plt.imshow(bin)
-    plt.show()
-
+    images = getOrigBinWarpedImages2(["straight_lines1.jpg",
+                                    # "straight_lines2.jpg",
+                                    # "test1.jpg",
+                                     "test2.jpg",
+                                    # "test3.jpg",
+                                    # "test4.jpg",
+                                     "test5.jpg"
+                                    # "test6.jpg"
+                                     ], video)
+    displayOrigBinWarpedImages(images, histo=False)
 
 
 

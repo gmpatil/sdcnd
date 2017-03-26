@@ -138,6 +138,7 @@ class Camera(object):
         udst1 = cv2.undistort(img1, mtx, dist, None, mtx)
         udst2 = cv2.undistort(img2, mtx, dist, None, mtx)
         udst3 = cv2.undistort(img3, mtx, dist, None, mtx)
+
         # Visualize undistortion
         f, ((ax11, ax12, ax13), (ax21, ax22, ax23)) = plt.subplots(2, 3, figsize=(30, 20))
         ax11.imshow(img1)
