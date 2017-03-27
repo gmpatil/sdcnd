@@ -149,7 +149,7 @@ class VideoProcessor(object):
         self.line_right = Line()
 
         out_img = self.line_left.poly_fit_line(leftx_base, binary_warped, out_img)
-        out_img = self.line_right.poly_fit_line(leftx_base, binary_warped, out_img)
+        out_img = self.line_right.poly_fit_line(rightx_base, binary_warped, out_img)
 
         return out_img
 
