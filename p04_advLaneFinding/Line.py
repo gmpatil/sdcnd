@@ -1,5 +1,12 @@
+import numpy as np
+
+# Set the width of the windows +/- margin
+margin = 100
+# Set minimum number of pixels found to recenter window
+minpix = 50
+
 class Line():
-    def __init__(self):
+    def __init__(self, line_base_pos):
         # was the line detected in the last iteration?
         self.detected = False
         # x values of the last n fits of the line
@@ -13,13 +20,29 @@ class Line():
         #radius of curvature of the line in some units
         self.radius_of_curvature = None
         #distance in meters of vehicle center from the line
-        self.line_base_pos = None
+        self.line_base_pos = line_base_pos
         #difference in fit coefficients between last and new fits
         self.diffs = np.array([0,0,0], dtype='float')
         #x values for detected line pixels
         self.allx = None
         #y values for detected line pixels
         self.ally = None
+
+        # Refactored
+        self.nonzeroy = None #Array of Y co-ord for current non zero line pixel on wrpIm
+        self.nonzerox = None
+
+        self.ploty = None
+
+        self.left_fit = None
+        self.left_fitx = None
+        self.left_lane_inds = None
+
+        self.right_fit = None
+        self.right_fitx = None
+        self.right_lane_inds = None
+
+        self.num_of_wins = None
 
 
 # import collections

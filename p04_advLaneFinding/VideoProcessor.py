@@ -129,6 +129,12 @@ class VideoProcessor(object):
 
         return (ret, Minv)
 
+    def valid_line(self):
+
+
+        return True
+
+
     def poly_fit_first(self, binary_warped):
         '''
         From SDCND Term1 course section "Advanced Lane Finding", lesson 31 "Finding Lane Line"
@@ -526,10 +532,12 @@ class VideoProcessor(object):
         warped_bin_debug = cv2.resize(imgSeries[-1], (0, 0), fx=0.3, fy=0.3)  # binWarped with windows, lane lines
         img[:250, :, :] = img[:250, :, :] * .4
         (h, w, _) = undist_bin.shape
-        img[20:20 + h, 20:20 + w, :] = undist_bin
-        img[20:20 + h, 20 + 20 + w:20 + 20 + w + w, :] = warped_bin_debug
+        # img[20:20 + h, 20:20 + w, :] = undist_bin
+        # img[20:20 + h, 20 + 20 + w:20 + 20 + w + w, :] = warped_bin_debug
+        img[20:20 + h, 20:20 + w, :] = warped_bin_debug
+
         txt_x_loc = 20 + 20 + w + w + 20
-        cv2.putText(img, 'Curvature: L {}m R {}m'.format(left_curverad, right_curverad),
+        cv2.putText(img, 'Curvature: L {}m, R {}m'.format(int(left_curverad), int(right_curverad)),
                         (txt_x_loc, 80), cv2.FONT_HERSHEY_SIMPLEX, .8, (255, 255, 255), 2)
         # self.draw_text(img, 'Distance (left):       {:.1f} m'.format(10), text_x, 140)
         # self.draw_text(img, 'Distance (right):      {:.1f} m'.format(10), text_x, 200)
