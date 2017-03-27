@@ -18,8 +18,21 @@ class VideoProcessor(object):
         :param camera: instance of Camera, initialized/loaded with camera calibration parameters.
         '''
         self.cam = camera
+
+        self.first_time = True # so that we can initialize
+
         self.nonzeroy = None
         self.nonzerox = None
+
+        self.ploty = None
+
+        self.left_fit = None
+        self.left_fitx = None
+        self.left_lane_inds = None
+
+        self.right_fit = None
+        self.right_fitx = None
+        self.right_lane_inds = None
 
     def thresholded_binary(self, img, s_thresh=(170, 255), sx_thresh=(20, 100)):
         h_thresh = (15, 100)
@@ -107,6 +120,13 @@ class VideoProcessor(object):
         ret.append(img)
         ret.append(bin)
         ret.append(binp)
+
+        # fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(4 * 3, 4))
+        # ax1.imshow(img)
+        # ax2.imshow(bin)
+        # ax3.imshow(binp)
+        # plt.show()
+
         return (ret, Minv)
 
     def poly_fit_first(self, binary_warped):
@@ -211,7 +231,7 @@ class VideoProcessor(object):
         return out_img
 
 
-    def visualize_polyfit(self, binary_warped, out_img):
+    def visualize_polyfit_first(self, binary_warped, out_img):
         # Generate x and y values for plotting
         left_fit = self.left_fit
         right_fit = self.right_fit
@@ -225,6 +245,10 @@ class VideoProcessor(object):
         ploty = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
         left_fitx = left_fit[0] * ploty ** 2 + left_fit[1] * ploty + left_fit[2]
         right_fitx = right_fit[0] * ploty ** 2 + right_fit[1] * ploty + right_fit[2]
+
+        self.left_fitx = left_fitx
+        self.right_fitx = right_fitx
+        self.ploty = ploty
 
         out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
         # out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
@@ -254,7 +278,7 @@ class VideoProcessor(object):
         '''
         From SDCND Term1 course section "Advanced Lane Finding", lesson 31 "Finding Lane Line"
 
-        :return:
+        :return: blank image of binary_warped shape.
         '''
         # Assume you now have a new warped binary image
         # from the next frame of video (also called "binary_warped")
@@ -286,22 +310,30 @@ class VideoProcessor(object):
         rightx = nonzerox[right_lane_inds]
         righty = nonzeroy[right_lane_inds]
         # Fit a second order polynomial to each
-        left_fit = np.polyfit(lefty, leftx, 2)
-        right_fit = np.polyfit(righty, rightx, 2)
-
 
         # Generate x and y values for plotting
         ploty = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
 
-        left_fitx = left_fit[0] * ploty ** 2 + left_fit[1] * ploty + left_fit[2]
-        right_fitx = right_fit[0] * ploty ** 2 + right_fit[1] * ploty + right_fit[2]
+
+        if (len(lefty) > 100 and len(leftx) > 100):
+            left_fit = np.polyfit(lefty, leftx, 2)
+            left_fitx = left_fit[0] * ploty ** 2 + left_fit[1] * ploty + left_fit[2]
+
+            self.left_fit = left_fit
+            self.left_fitx = left_fitx
+        else:
+            print ("Not sufficient pixel for left line {} , {} ".format(len(lefty), len(leftx)))
+
+        if (len(righty) > 100 and len(rightx) > 100):
+            right_fit = np.polyfit(righty, rightx, 2)
+            right_fitx = right_fit[0] * ploty ** 2 + right_fit[1] * ploty + right_fit[2]
+
+            self.right_fit = right_fit
+            self.right_fitx = right_fitx
+        else:
+            print ("Not sufficient pixel for right line {} , {} ".format(len(righty), len(rightx)))
 
 
-        self.left_fit = left_fit
-        self.right_fit = right_fit
-
-        self.left_fitx = left_fitx
-        self.right_fitx = right_fitx
         self.ploty = ploty
 
         self.nonzeroy = nonzeroy
@@ -313,7 +345,13 @@ class VideoProcessor(object):
         return out_img
 
 
-    def visualize_polyfit2(self, binary_warped, out_img):
+    def visualize_polyfit(self, binary_warped, out_img):
+        '''
+
+        :param binary_warped:
+        :param out_img:
+        :return: Warped binary image with Windows, lane lines identified
+        '''
         margin = 100
 
         nonzeroy = self.nonzeroy
@@ -399,14 +437,20 @@ class VideoProcessor(object):
         right_curverad = ((1 + (2 * right_fit_cr[0] * y_eval * ym_per_pix + right_fit_cr[1]) ** 2) ** 1.5) / np.absolute(
             2 * right_fit_cr[0])
         # Now our radius of curvature is in meters
-        print(left_curverad, 'm', right_curverad, 'm')
+        # print(left_curverad, 'm', right_curverad, 'm')
 
         # Example values: 632.1 m    626.2 m
         return (left_curverad,  right_curverad)
 
 
     def draw_on_orig(self, undist, warped, Minv):
+        '''
 
+        :param undist:
+        :param warped:
+        :param Minv:
+        :return: undist image with polyfill overlay.
+        '''
         left_fit = self.left_fit
         right_fit = self.right_fit
         ploty = self.ploty
@@ -437,12 +481,61 @@ class VideoProcessor(object):
         newwarp = cv2.warpPerspective(color_warp, Minv, (undist.shape[1], undist.shape[0]))
         # Combine the result with the original image
         result = cv2.addWeighted(undist, 1, newwarp, 0.3, 0)
-        plt.imshow(result)
-        plt.show()
+        # plt.imshow(result)
+        # plt.show()
         return result
 
 
+    # def pipeline(self, img):
+    #     (imgSeries, Minv) = self.get_binary_warped_image(img)   # ([undist, bin, binWarped], Minv)
+    #
+    #     if (self.first_time):
+    #         self.first_time = False
+    #         outImg = self.poly_fit_first(imgSeries[-1])
+    #         imgSeries[-1] = self.visualize_polyfit_first(imgSeries[-1], outImg)
+    #     else:
+    #         outImg = self.poly_fit(imgSeries[-1])  #blank binWarped
+    #         imgSeries[-1] = self.visualize_polyfit(imgSeries[-1], outImg)  # binWarped with windows, lane lines
+    #         (left_curverad, right_curverad) = self.measure_radius()
+    #         img = self.draw_on_orig(imgSeries[0], imgSeries[2], Minv)  # undist image with polyfill overlay.
+    #
+    #         undist_bin = cv2.resize(imgSeries[1], (0, 0), fx=0.3, fy=0.3)  # bin
+    #         warped_bin_debug = cv2.resize(imgSeries[-1], (0, 0), fx=0.3, fy=0.3)  # binWarped with windows, lane lines
+    #         img[:250, :, :] = img[:250, :, :] * .4
+    #         (h, w, _) = undist_bin.shape
+    #         img[20:20 + h, 20:20 + w, :] = undist_bin
+    #         img[20:20 + h, 20 + 20 + w:20 + 20 + w + w, :] = warped_bin_debug
+    #         txt_x_loc = 20 + 20 + w + w + 20
+    #         cv2.putText(img, 'Curvature: L {}m R {}m'.format(left_curverad, right_curverad),
+    #                     (txt_x_loc, 80), cv2.FONT_HERSHEY_SIMPLEX, .8, (255, 255, 255), 2)
+    #         # self.draw_text(img, 'Distance (left):       {:.1f} m'.format(10), text_x, 140)
+    #         # self.draw_text(img, 'Distance (right):      {:.1f} m'.format(10), text_x, 200)
+    #
+    #
+    #     return img
+
     def pipeline(self, img):
-        print ("Hello")
+
+        (imgSeries, Minv) = self.get_binary_warped_image(img)   # ([undist, bin, binWarped], Minv)
+        outImg = self.poly_fit_first(imgSeries[-1])  #blank binWarped
+        imgSeries[-1] = self.visualize_polyfit_first(imgSeries[-1], outImg)  # binWarped with windows, lane lines
+        (left_curverad, right_curverad) = self.measure_radius()
+        img = self.draw_on_orig(imgSeries[0], imgSeries[2], Minv)  # undist image with polyfill overlay.
+
+        undist_bin = cv2.resize(imgSeries[1], (0, 0), interpolation=cv2.INTER_NEAREST, fx=0.3, fy=0.3)  # bin
+        warped_bin_debug = cv2.resize(imgSeries[-1], (0, 0), fx=0.3, fy=0.3)  # binWarped with windows, lane lines
+        img[:250, :, :] = img[:250, :, :] * .4
+        (h, w, _) = undist_bin.shape
+        img[20:20 + h, 20:20 + w, :] = undist_bin
+        img[20:20 + h, 20 + 20 + w:20 + 20 + w + w, :] = warped_bin_debug
+        txt_x_loc = 20 + 20 + w + w + 20
+        cv2.putText(img, 'Curvature: L {}m R {}m'.format(left_curverad, right_curverad),
+                        (txt_x_loc, 80), cv2.FONT_HERSHEY_SIMPLEX, .8, (255, 255, 255), 2)
+        # self.draw_text(img, 'Distance (left):       {:.1f} m'.format(10), text_x, 140)
+        # self.draw_text(img, 'Distance (right):      {:.1f} m'.format(10), text_x, 200)
+
+
+        return img
+
 
 

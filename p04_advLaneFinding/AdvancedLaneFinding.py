@@ -3,6 +3,7 @@ import cv2
 import matplotlib.pyplot as plt
 from Camera import Camera
 from VideoProcessor import VideoProcessor
+from moviepy.editor import VideoFileClip
 
 TEST_IMG_DIR = "./test_images/"
 
@@ -45,15 +46,17 @@ def getOrigBinWarpedImages2(imageFileNames, vidp):
         if (first):
             first = False
             outImg = vidp.poly_fit_first(imgSeries[-1])
-            imgSeries[-1] = vidp.visualize_polyfit(imgSeries[-1], outImg)
+            imgSeries[-1] = vidp.visualize_polyfit_first(imgSeries[-1], outImg)
             # vidp.measure_radius()
             # vidp.draw_on_orig(imgSeries[0], imgSeries[2], Minv)
 
+            vidp.measure_radius()
+            imgSeries[-1] = vidp.draw_on_orig(imgSeries[0], imgSeries[2], Minv)
         else:
             outImg = vidp.poly_fit(imgSeries[-1])
-            imgSeries[-1] = vidp.visualize_polyfit2(imgSeries[-1], outImg)
+            imgSeries[-1] = vidp.visualize_polyfit(imgSeries[-1], outImg)
             vidp.measure_radius()
-            vidp.draw_on_orig(imgSeries[0], imgSeries[2], Minv)
+            imgSeries[-1] = vidp.draw_on_orig(imgSeries[0], imgSeries[2], Minv)
 
         images.append(imgSeries)
 
@@ -101,8 +104,19 @@ def displayOrigBinWarpedImages(images, histo=False):
     # plt.tight_layout()
     plt.show()
 
+def find_lanes_in_video():
+    cam = Camera(load=True)
+    video = VideoProcessor(cam)
+
+    p04_output = 'p04_out.mp4'
+    clip1 = VideoFileClip("./project_video.mp4")
+    p04_video_clip = clip1.fl_image(video.pipeline)  #this function expects color images!!
+    p04_video_clip.write_videofile(p04_output, audio=False)
+
 
 def main():
+
+    find_lanes_in_video()
 
     # cam = Camera(load=False)
     # ret, mtx, dist, rvecs, tvecs = cam.calibrate_camera(save=True)
@@ -110,8 +124,8 @@ def main():
     # cam.undistort_test_images()
     #
 
-    cam = Camera(load=True)
-    video = VideoProcessor(cam)
+    # cam = Camera(load=True)
+    # video = VideoProcessor(cam)
 
     # load test images, undistort, convert binary and warp to bird view perspective.
     # images = getOrigBinWarpedImages(["straight_lines1.jpg",
@@ -126,17 +140,18 @@ def main():
     # # displayOrigBinWarpedImages(images, histo=False)
     # displayOrigBinWarpedImages(images, histo=True)
 
-    images = getOrigBinWarpedImages2(["straight_lines1.jpg",
-                                    # "straight_lines2.jpg",
-                                    # "test1.jpg",
-                                     "test2.jpg",
-                                    # "test3.jpg",
-                                    # "test4.jpg",
-                                     "test5.jpg"
-                                    # "test6.jpg"
-                                     ], video)
-    displayOrigBinWarpedImages(images, histo=False)
-
+    # images = getOrigBinWarpedImages2(["straight_lines1.jpg",
+    #                                 # "straight_lines2.jpg",
+    #                                 # "test1.jpg",
+    #                                 # "test2.jpg",
+    #                                 # "test3.jpg",
+    #                                 # "test4.jpg",
+    #                                 # "test5.jpg"
+    #                                 # "test6.jpg"
+    #                                   "mytest5.png",
+    #                                   "mytest6.png"
+    #                                  ], video)
+    # displayOrigBinWarpedImages(images, histo=False)
 
 
 if __name__ == '__main__':

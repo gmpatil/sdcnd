@@ -23,17 +23,22 @@ The goals / steps of this project are the following:
 [image3]: ./output_images/undistorted_binary_test1.png "Binary Example (test1,jpg)"
 [image32]: ./output_images/undistorted_binary_test4.png "Binary Example (test4.jpg)"
 [image4]: ./output_images/perspective_3x3.png "Warp Example"
-[image5]: ./output_images/hist_3x2.png "Histogram"
-[image6]: ./examples/example_output.jpg "Output"
+[image41]: ./output_images/hist_3x2.png "Histogram"
+[image42]: ./output_images/poly_line1.png "Ploynomial Line"
+[image43]: ./output_images/poly_line3x3.png "Ploynomial Line For Test Images"
+[image44]: ./output_images/polyFill_line3x3.png "Ploynomial Line Fill For Test Images"
+[image5]: ./examples/example_output.jpg "Output"
+[image6]: ./output_images/advLaneOnOrig.png "Lane Lines Projected Back on Original Image"
+[image61]: ./output_images/advLaneOnOrig2.png "Lane Lines Projected Back on Original Image"
 [video1]: ./project_video.mp4 "Video"
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
-###Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
+### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
 
 ---
-###Writeup / README
+### Writeup / README
 
-####1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  
+#### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  
 
 This Markdown file is used to provide writeup.
 
@@ -42,9 +47,9 @@ Note all code related to this project are mainly in below Python files.
 * Camera.py
 
  
-###Camera Calibration
+### Camera Calibration
 
-####1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
+#### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
 The code for this step is contained in **`Camera.py`** file in methods **`calibrate_camera`** and **`undistort_calibration_images`**.
 
 I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the 
@@ -87,13 +92,13 @@ See method ```undistort_calibration_images()```.
 
 ![alt text][image1]
 
-###Pipeline (single images)
+### Pipeline (single images)
 
-####1. Provide an example of a distortion-corrected image.
+#### 1. Provide an example of a distortion-corrected image.
 Using the above steps, below is sample of undistorted test images. See method `undistort_test_images()` in class `Camera` (Camera.py).
 ![alt text][image2]
 
-####2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
+#### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 I used a combination of color and gradient thresholds to generate a binary image 
 (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my 
 output for this step.  
@@ -101,13 +106,15 @@ output for this step.
 Below is sample of binary color image with green channel showing Sobel X gradients in the threshold and blue channel 
 showing  
 
-Binary image of test1.png 
+Binary color/RGB image of test1.png 
+
 ![alt text][image3]
 
-Binary image of test4.png  
+Binary color/RGB image of test4.png  
+
 ![alt text][image32]
 
-####3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
+#### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
 The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
 
@@ -138,35 +145,44 @@ I verified that my perspective transform was working as expected by drawing the 
 
 ![alt text][image4]
 
-####4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
+#### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
 Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
 
-![alt text][image5]
+![alt text][image41]
 
-####5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
+![alt text][image42]
+
+![alt text][image43]
+
+![alt text][image44]
+
+
+#### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
 I did this in lines # through # in my code in `my_other_file.py`
 
-####6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
+#### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
 I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+
+![alt text][image61]
 
 ![alt text][image6]
 
 ---
 
-###Pipeline (video)
+### Pipeline (video)
 
-####1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
+#### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
 Here's a [link to my video result](./project_video.mp4)
 
 ---
 
-###Discussion
+### Discussion
 
-####1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+#### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
 Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
 
