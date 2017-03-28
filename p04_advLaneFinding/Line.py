@@ -46,17 +46,38 @@ class Line():
         self.prev_lines_fit = np.empty(shape=[0,3])
 
 
-    def valid_line(self):
-        return True
+    def valid_line(self, prev_lane_fit, curr_lane_fit, curr_lane_pos, ploty):
+        ret = True
+
+        y_eval = np.max(ploty)
+        curr_x_at_ymax = curr_lane_fit[0] * y_eval ** 2 + curr_lane_fit[1] * y_eval + curr_lane_fit[2]
+        curr_x_at_ymin = curr_lane_fit[2]
+
+        if (prev_lane_fit != None):
+            prev_x_at_ymax = prev_lane_fit[0] * y_eval ** 2 + prev_lane_fit[1] * y_eval + prev_lane_fit[2]
+            prev_x_at_ymin = prev_lane_fit[2]
+
+            if (abs (prev_x_at_ymax - curr_x_at_ymax) > (2 * margin)):
+                ret = False
+
+            if (abs (prev_x_at_ymin - curr_x_at_ymin) > (2 * margin)):
+                ret = False
+
+        if (abs (curr_lane_pos - curr_x_at_ymin) > (2 * margin)):
+            ret = False
+
+        return ret
 
     def poly_fit_line(self, line_current_pos, binary_warped, out_img):
 
         laney, lanex = self.find_lane_thru_windows(line_current_pos, binary_warped, out_img)
 
+        ploty = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
+
         # Fit a second order polynomial to each
         if (len(laney) > 0):
             lane_fit = np.polyfit(laney, lanex, 2)
-            if (self.valid_line()):
+            if (self.valid_line(self.lane_fit, lane_fit, line_current_pos, ploty)):
                 self.line_base_pos = line_current_pos
 
                 if (self.prev_lines_fit.shape[0] > nprev_lins):
@@ -71,7 +92,6 @@ class Line():
 
         # visualize
         # Generate x and y values for plotting
-        ploty = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
         lane_fitx = self.lane_fit[0] * ploty ** 2 + self.lane_fit[1] * ploty + self.lane_fit[2]
 
         self.lane_fitx = lane_fitx
@@ -152,6 +172,10 @@ class Line():
         lane_curverad = ((1 + (
         2 * lane_fit_cr[0] * y_eval * ym_per_pix + lane_fit_cr[1]) ** 2) ** 1.5) / np.absolute(
             2 * lane_fit_cr[0])
+
+        if (lane_curverad != lane_curverad):
+            print("lane_curverad is NaN: y_eval {} lane_fit_cr {}".format(y_eval, lane_fit_cr))
+            lane_curverad = 0.0
 
         return lane_curverad
 
