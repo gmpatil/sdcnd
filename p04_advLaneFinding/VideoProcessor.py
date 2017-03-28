@@ -146,7 +146,7 @@ class VideoProcessor(object):
         rightx_base = np.argmax(histogram[midpoint:,1]) + midpoint
 
         if (self.first_time):
-            self.first_time = True
+            self.first_time = False
 
             self.line_left = Line()
             self.line_right = Line()
