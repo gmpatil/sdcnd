@@ -40,7 +40,7 @@ class VideoProcessor(object):
         h_thresh = (15, 100)
 
         img2 = np.copy(img)
-        # Convert to HSV color space and separate the V channel
+        # Convert to HLS color space and separate the L channel
         hsv = cv2.cvtColor(img2, cv2.COLOR_RGB2HLS).astype(np.float)
         h_channel = hsv[:, :, 0]
         s_channel = hsv[:, :, 2]
