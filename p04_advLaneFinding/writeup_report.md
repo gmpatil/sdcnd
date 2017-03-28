@@ -30,7 +30,7 @@ The goals / steps of this project are the following:
 [image42]: ./output_images/poly_line1.png "Ploynomial Line"
 [image43]: ./output_images/poly_line3x3.png "Ploynomial Line For Test Images"
 [image44]: ./output_images/polyFill_line3x3.png "Ploynomial Line Fill For Test Images"
-[image5]: ./output_images/radius_vehicle_offset.jpg "Image showing radius of curvature and vehicle offset"
+[image5]: ./output_images/radius_vehicle_offset.png "Image showing radius of curvature and vehicle offset"
 [image6]: ./output_images/advLaneOnOrig.png "Lane Lines Projected Back on Original Image"
 [image61]: ./output_images/advLaneOnOrig2.png "Lane Lines Projected Back on Original Image"
 [video1]: ./project_video.mp4 "Video"
