@@ -44,7 +44,13 @@ class Line():
         self.lane_inds = None
 
         self.prev_lines_fit = np.empty(shape=[0,3])
+        self.prev_lines_curve = np.empty(shape=[0,1])
 
+
+    def get_lane_x_pos(self):
+        y_eval = np.max(self.ploty)
+        curr_x_at_ymax = self.lane_fit[0] * y_eval ** 2 + self.lane_fit[1] * y_eval + self.lane_fit[2]
+        return curr_x_at_ymax
 
     def valid_line(self, prev_lane_fit, curr_lane_fit, curr_lane_pos, ploty):
         ret = True
@@ -176,8 +182,14 @@ class Line():
         if (lane_curverad != lane_curverad):
             print("lane_curverad is NaN: y_eval {} lane_fit_cr {}".format(y_eval, lane_fit_cr))
             lane_curverad = 0.0
+        else:
+            if (self.prev_lines_curve.shape[0] > nprev_lins):
+                self.prev_lines_curve = np.vstack([self.prev_lines_curve[1:], [lane_curverad]])
+            else:
+                self.prev_lines_curve = np.vstack([self.prev_lines_curve, [lane_curverad]])
 
-        return lane_curverad
+        # return lane_curverad
+        return np.average(self.prev_lines_curve, axis=0)
 
 
             # import collections

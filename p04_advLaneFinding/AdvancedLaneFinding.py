@@ -104,6 +104,42 @@ TEST_IMG_DIR = "./test_images/"
 #     # plt.tight_layout()
 #     plt.show()
 
+
+def displayBinImagesForAllTestImages():
+    cam = Camera(load=True)
+    video = VideoProcessor(cam)
+
+    image_files = [
+        # "straight_lines1.jpg",
+        # "straight_lines2.jpg",
+        # "test1.jpg",
+        # "test2.jpg"
+        "test3.jpg",
+        "test4.jpg",
+        "test5.jpg",
+        "test6.jpg"
+    ]
+
+    images = []
+    for imgFileName in image_files:
+        img = cv2.imread(TEST_IMG_DIR + imgFileName)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        (imgSeries, Minv) = video.get_binary_warped_image(img)
+        images.append(imgSeries)
+
+
+    cnt = 0
+    f, axarr = plt.subplots(len(images), 2, figsize=(4 * 2, len(images) * 4))
+    for imgs in images:
+        axarr[cnt][0].imshow(imgs[0])
+        axarr[cnt][0].set_title(str(image_files[cnt]))
+        axarr[cnt][1].imshow(imgs[1])
+        axarr[cnt][1].set_title('Bin ')
+
+        cnt += 1
+
+    plt.show()
+
 def find_lanes_in_video():
     cam = Camera(load=True)
     video = VideoProcessor(cam)
@@ -117,6 +153,8 @@ def find_lanes_in_video():
 def main():
 
     find_lanes_in_video()
+
+    # displayBinImagesForAllTestImages()
 
     # cam = Camera(load=False)
     # ret, mtx, dist, rvecs, tvecs = cam.calibrate_camera(save=True)

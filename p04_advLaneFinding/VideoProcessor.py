@@ -36,6 +36,9 @@ class VideoProcessor(object):
         self.right_fitx = None
         self.right_lane_inds = None
 
+        self.camera_offsets = np.empty(shape=[0, 1])
+
+
     def thresholded_binary(self, img, s_thresh=(170, 255), sx_thresh=(20, 100)):
         h_thresh = (15, 100)
 
@@ -605,13 +608,32 @@ class VideoProcessor(object):
     #
     #     return img
 
-    def pipeline(self, img):
 
+    def get_camera_offset(self):
+        left_lane_pos = self.line_left.get_lane_x_pos()
+        right_lane_pos = self.line_right.get_lane_x_pos()
+        lane_center_pos_px = (left_lane_pos + right_lane_pos) / 2.0
+        lane_width_px = abs(right_lane_pos - left_lane_pos)
+
+        if (self.camera_offsets.shape[0] > 5):
+            self.camera_offsets = np.vstack([self.camera_offsets[1:], [lane_center_pos_px]])
+        else:
+            self.camera_offsets = np.vstack([self.camera_offsets, [lane_center_pos_px] ])
+
+        avg_lane_center_pos_px = np.average(self.camera_offsets, axis=0)
+        camera_offset_px = (avg_lane_center_pos_px[0] - 640.0)
+        camera_offset_m = ( camera_offset_px / lane_width_px) * 3.7
+
+        return camera_offset_m
+
+
+    def pipeline(self, img):
         (imgSeries, Minv) = self.get_binary_warped_image(img)   # ([undist, bin, binWarped], Minv)
         outImg = self.poly_fit_line(imgSeries[-1])  #blank binWarped
         imgSeries[-1] = outImg  # binWarped with windows, lane lines
         left_curverad = self.line_left.measure_radius()
         right_curverad = self.line_right.measure_radius()
+        camera_offset = self.get_camera_offset()
 
         img = self.draw_on_orig_new(imgSeries[0], imgSeries[2], Minv)  # undist image with polyfill overlay.
 
@@ -622,8 +644,11 @@ class VideoProcessor(object):
         img[20:20 + h, 20:20 + w, :] = warped_bin_debug
 
         txt_x_loc = 20 + 20 + w + w + 20
-        cv2.putText(img, 'Curvature: L {}m, R {}m'.format(int(left_curverad), int(right_curverad)),
-                        (txt_x_loc, 80), cv2.FONT_HERSHEY_SIMPLEX, .8, (255, 255, 255), 2)
+        cv2.putText(img, 'Curvature: L {0:05}m, R {1:05}m'.format(int(left_curverad), int(right_curverad)),
+                    (txt_x_loc, 80), cv2.FONT_HERSHEY_SIMPLEX, .8, (255, 255, 255), 2)
+
+        cv2.putText(img, 'Vehicle Offset: {0:.3f} m'.format(camera_offset),
+                    (txt_x_loc, 140), cv2.FONT_HERSHEY_SIMPLEX, .8, (255, 255, 255), 2)
 
         return img
 

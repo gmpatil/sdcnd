@@ -23,12 +23,14 @@ The goals / steps of this project are the following:
 [image2]: ./output_images/undistorted_test_images.png "Road Transformed"
 [image3]: ./output_images/undistorted_binary_test1.png "Binary Example (test1,jpg)"
 [image32]: ./output_images/undistorted_binary_test4.png "Binary Example (test4.jpg)"
+[image33]: ./output_images/binary_test_images_1_4.png "Undistorted and Binary Images [1-4]"
+[image34]: ./output_images/binary_test_images_1_4.png "Undistorted and Binary Images [5-8]"
 [image4]: ./output_images/perspective_3x3.png "Warp Example"
 [image41]: ./output_images/hist_3x2.png "Histogram"
 [image42]: ./output_images/poly_line1.png "Ploynomial Line"
 [image43]: ./output_images/poly_line3x3.png "Ploynomial Line For Test Images"
 [image44]: ./output_images/polyFill_line3x3.png "Ploynomial Line Fill For Test Images"
-[image5]: ./examples/example_output.jpg "Output"
+[image5]: ./output_images/radius_vehicle_offset.jpg "Image showing radius of curvature and vehicle offset"
 [image6]: ./output_images/advLaneOnOrig.png "Lane Lines Projected Back on Original Image"
 [image61]: ./output_images/advLaneOnOrig2.png "Lane Lines Projected Back on Original Image"
 [video1]: ./project_video.mp4 "Video"
@@ -141,6 +143,11 @@ Binary color/RGB image of test1.png
 Binary color/RGB image of test4.png  
 ![alt text][image32]
 
+Below are the binary images for all the 8 test images along with undistorted images.
+![alt text][image33]
+
+![alt text][image34]
+
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
 The code for my perspective transform includes a function called `warper()`, which appears in lines#77 to #100 
@@ -203,6 +210,10 @@ in `VideoProcessor.py`.
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
 I did this in lines #158 through #180 in my code in `Line.py` in the function `measure_radius()`.
+
+Screen capture of the video showing radius of curvature and position of the vehicle with respect to the center.
+
+![alt text][image5]
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
