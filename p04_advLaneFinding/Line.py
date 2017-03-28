@@ -7,6 +7,8 @@ margin = 100
 minpix = 50
 # Choose the number of sliding windows
 nwindows = 9
+# number of lines to average.
+nprev_lins = 5
 
 class Line():
     def __init__(self):
@@ -41,14 +43,60 @@ class Line():
         self.lane_fitx = None
         self.lane_inds = None
 
+        self.prev_lines_fit = np.empty(shape=[0,3])
+
 
     def valid_line(self):
         return True
 
     def poly_fit_line(self, line_current_pos, binary_warped, out_img):
 
-        self.line_base_pos = line_current_pos
+        laney, lanex = self.find_lane_thru_windows(line_current_pos, binary_warped, out_img)
 
+        # Fit a second order polynomial to each
+        if (len(laney) > 0):
+            lane_fit = np.polyfit(laney, lanex, 2)
+            if (self.valid_line()):
+                self.line_base_pos = line_current_pos
+
+                if (self.prev_lines_fit.shape[0] > nprev_lins):
+                    self.prev_lines_fit = np.vstack([self.prev_lines_fit[1:], lane_fit])
+                else:
+                    self.prev_lines_fit = np.vstack([self.prev_lines_fit, lane_fit])
+
+                self.lane_fit = np.average(self.prev_lines_fit, axis = 0)
+        else:
+            # lane_fit = [0, 0, self.line_base_pos]
+            self.lane_fit = np.average(self.prev_lines_fit, axis=0)
+
+        # visualize
+        # Generate x and y values for plotting
+        ploty = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
+        lane_fitx = self.lane_fit[0] * ploty ** 2 + self.lane_fit[1] * ploty + self.lane_fit[2]
+
+        self.lane_fitx = lane_fitx
+        self.ploty = ploty
+
+        out_img[laney, lanex] = [255, 0, 0] # pixels from binary images as lane line
+
+        # plt.imshow(out_img)
+        # plt.plot(left_fitx, ploty, color='yellow')
+        # plt.plot(right_fitx, ploty, color='yellow')
+        # plt.xlim(0, 1280)
+        # plt.ylim(720, 0)
+        # plt.show()
+
+        line_pts = np.stack((lane_fitx, ploty), axis=1)  # lane fit
+
+        cv2.polylines(out_img, [line_pts.astype('int32').reshape((-1,1,2))], isClosed=False, color=[255,255,0]
+                      , thickness=3, lineType=cv2.LINE_AA)
+
+        # plt.imshow(out_img)
+        # plt.show()
+
+        return out_img
+
+    def find_lane_thru_windows(self, line_current_pos, binary_warped, out_img):
         # Choose the number of sliding windows
         nwindows = 9
         # Set height of windows
@@ -57,10 +105,8 @@ class Line():
         nonzero = binary_warped[:, :, 1].nonzero()
         nonzeroy = np.array(nonzero[0])
         nonzerox = np.array(nonzero[1])
-
         # Create empty lists to receive left and right lane pixel indices
         lane_inds = []
-
         # Step through the windows one by one
         for window in range(nwindows):
             # Identify window boundaries in x and y (and right and left)
@@ -81,53 +127,13 @@ class Line():
             if len(good_left_inds) > minpix:
                 line_current_pos = np.int(np.mean(nonzerox[good_left_inds]))
 
-        # Concatenate the arrays of indices
-        lane_inds = np.concatenate(lane_inds)
+        lane_inds = np.concatenate(lane_inds) # Concatenate the arrays of indices
 
         # Extract left and right line pixel positions
-        leftx = nonzerox[lane_inds]
-        lefty = nonzeroy[lane_inds]
+        lanex = nonzerox[lane_inds]
+        laney = nonzeroy[lane_inds]
+        return laney, lanex
 
-        # Fit a second order polynomial to each
-        if (len(lefty) > 0):
-            self.lane_fit = np.polyfit(lefty, leftx, 2)
-        else:
-            self.lane_fit = [0, 0, self.line_base_pos]
-
-
-        self.nonzeroy = nonzeroy
-        self.nonzerox = nonzerox
-
-        self.lane_inds = lane_inds
-
-
-        # visualize
-
-        # Generate x and y values for plotting
-        ploty = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
-        lane_fitx = self.lane_fit[0] * ploty ** 2 + self.lane_fit[1] * ploty + self.lane_fit[2]
-
-        self.lane_fitx = lane_fitx
-        self.ploty = ploty
-
-        out_img[nonzeroy[lane_inds], nonzerox[lane_inds]] = [255, 0, 0]
-
-        # plt.imshow(out_img)
-        # plt.plot(left_fitx, ploty, color='yellow')
-        # plt.plot(right_fitx, ploty, color='yellow')
-        # plt.xlim(0, 1280)
-        # plt.ylim(720, 0)
-        # plt.show()
-
-        line_pts = np.stack((lane_fitx, ploty), axis=1)
-
-        cv2.polylines(out_img, [line_pts.astype('int32').reshape((-1,1,2))], isClosed=False, color=[255,255,0]
-                      , thickness=3, lineType=cv2.LINE_AA)
-
-        # plt.imshow(out_img)
-        # plt.show()
-
-        return out_img
 
     def measure_radius(self):
 
