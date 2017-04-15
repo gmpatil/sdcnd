@@ -5,7 +5,14 @@ import matplotlib.image as mpimg
 from VideoProcessor import VideoProcessor
 from moviepy.editor import VideoFileClip
 import glob
+import time
+import pickle
+
 from skimage.feature import hog
+from sklearn.svm import LinearSVC
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
 
 TEST_IMG_DIR = "./test_images/"
 TRAIN_IMG_DIR = "./train_images/"
@@ -18,7 +25,7 @@ def get_rand_img(files_path):
     img = mpimg.imread(images[randIndex])
     return  img
 
-def display_sample_training_images():
+def display_training_images():
     # non-vehicle: ${TRAIN_IMG_DIR}/non-vehicles/Extras/extra1.png to extra5766.png,
     #              ${TRAIN_IMG_DIR}/non-vehicles/GTI/image1.png to image3900.png
     # vehicle: ${TRAIN_IMG_DIR}/vehicles/GTI_Far/image0000.png to image0974.png ,
@@ -199,12 +206,213 @@ def display_training_image_features():
     plt.show()
 
 
+# Define a function to return HOG features and visualization
+def get_hog_features(img, orient, pix_per_cell, cell_per_block,
+                        vis=False, feature_vec=True):
+    # Call with two outputs if vis==True
+    if vis == True:
+        features, hog_image = hog(img, orientations=orient, pixels_per_cell=(pix_per_cell, pix_per_cell),
+                                  cells_per_block=(cell_per_block, cell_per_block), transform_sqrt=True,
+                                  visualise=vis, feature_vector=feature_vec)
+        return features, hog_image
+    # Otherwise call with one output
+    else:
+        features = hog(img, orientations=orient, pixels_per_cell=(pix_per_cell, pix_per_cell),
+                       cells_per_block=(cell_per_block, cell_per_block), transform_sqrt=True,
+                       visualise=vis, feature_vector=feature_vec)
+        return features
+
+# Define a function to extract features from a list of images
+# Have this function call bin_spatial() and color_hist()
+def extract_features(imgs, color_space='RGB', spatial_size=(32, 32),
+                     hist_bins=32, orient=9,
+                     pix_per_cell=8, cell_per_block=2, hog_channel=0,
+                     spatial_feat=True, hist_feat=True, hog_feat=True):
+
+    vp = VideoProcessor()
+
+    # Create a list to append feature vectors to
+    features = []
+    # Iterate through the list of images
+    for file in imgs:
+        file_features = []
+        # Read in each one by one
+        image = mpimg.imread(file)
+        # apply color conversion if other than 'RGB'
+        if color_space != 'RGB':
+            if color_space == 'HSV':
+                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+            elif color_space == 'LUV':
+                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2LUV)
+            elif color_space == 'HLS':
+                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
+            elif color_space == 'YUV':
+                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YUV)
+            elif color_space == 'YCrCb':
+                feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
+        else:
+            feature_image = np.copy(image)
+
+        if spatial_feat == True:
+            spatial_features = vp.bin_spatial(feature_image, size=spatial_size)
+            file_features.append(spatial_features)
+        if hist_feat == True:
+            # Apply color_hist()
+            hist_features = vp.color_hist(feature_image, nbins=hist_bins)
+            file_features.append(hist_features)
+        if hog_feat == True:
+            # Call get_hog_features() with vis=False, feature_vec=True
+            if hog_channel == 'ALL':
+                hog_features = []
+                for channel in range(feature_image.shape[2]):
+                    hog_features.append(get_hog_features(feature_image[:, :, channel],
+                                                         orient, pix_per_cell, cell_per_block,
+                                                         vis=False, feature_vec=True))
+                hog_features = np.ravel(hog_features)
+            else:
+                hog_features = get_hog_features(feature_image[:, :, hog_channel], orient,
+                                                pix_per_cell, cell_per_block, vis=False, feature_vec=True)
+            # Append the new feature vector to the features list
+            file_features.append(hog_features)
+        features.append(np.concatenate(file_features))
+    # Return list of feature vectors
+    return features
+
+def train_classifier():
+    # Divide up into cars and notcars
+    # images = glob.glob('*.jpeg')
+    images = glob.glob(TRAIN_IMG_DIR + 'vehicles/**/GTI*/*.png', recursive=True)
+    cars = []
+    notcars = []
+    for image in images:
+        cars.append(image)
+
+    images = glob.glob(TRAIN_IMG_DIR + 'non-vehicles/**/GTI*/*.png', recursive=True)
+    for image in images:
+        notcars.append(image)
+
+
+    print("Number of vehicle samples: {}\nNumber of non-vehicle samples {}".format(len(cars), len(notcars)))
+    sample_size = 500
+    cars = cars[0:sample_size]
+    notcars = notcars[0:sample_size]
+
+
+    color_space = 'YCrCb'  # ''RGB'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb  ( YCrCb = LUV? > HLS > HSV > > YUV > RGB)
+    orient = 9  # HOG orientations
+    pix_per_cell = 8  # HOG pixels per cell
+    cell_per_block = 2  # HOG cells per block
+    hog_channel = "ALL"  # 2  # Can be 0, 1, 2, or "ALL" ( "ALL" > 0 > 1> 2)
+    spatial_size = (16, 16)  # Spatial binning dimensions
+    hist_bins = 16  # Number of histogram bins
+    spatial_feat = True  # Spatial features on or off
+    hist_feat = True  # Histogram features on or off
+    hog_feat = True  # HOG features on or off
+    y_start_stop = [400, 656]  # Min and max in y to search in slide_window() 400, 670
+
+    car_features = extract_features(cars, color_space=color_space,
+                                    spatial_size=spatial_size, hist_bins=hist_bins,
+                                    orient=orient, pix_per_cell=pix_per_cell,
+                                    cell_per_block=cell_per_block,
+                                    hog_channel=hog_channel, spatial_feat=spatial_feat,
+                                    hist_feat=hist_feat, hog_feat=hog_feat)
+    notcar_features = extract_features(notcars, color_space=color_space,
+                                       spatial_size=spatial_size, hist_bins=hist_bins,
+                                       orient=orient, pix_per_cell=pix_per_cell,
+                                       cell_per_block=cell_per_block,
+                                       hog_channel=hog_channel, spatial_feat=spatial_feat,
+                                       hist_feat=hist_feat, hog_feat=hog_feat)
+
+    X = np.vstack((car_features, notcar_features)).astype(np.float64)
+    # Fit a per-column scaler
+    X_scaler = StandardScaler().fit(X)
+    # Apply the scaler to X
+    scaled_X = X_scaler.transform(X)
+
+    # Define the labels vector
+    y = np.hstack((np.ones(len(car_features)), np.zeros(len(notcar_features))))
+
+    # Split up data into randomized training and test sets
+    rand_state = np.random.randint(0, 100)
+    X_train, X_test, y_train, y_test = train_test_split(
+        scaled_X, y, test_size=0.2, random_state=rand_state)
+
+    print('Using:', orient, 'orientations', pix_per_cell,
+          'pixels per cell and', cell_per_block, 'cells per block')
+    print('Feature vector length:', len(X_train[0]))
+    # Use a linear SVC
+    svc = LinearSVC()
+    # Check the training time for the SVC
+    t = time.time()
+    svc.fit(X_train, y_train)
+    t2 = time.time()
+    print(round(t2 - t, 2), 'Seconds to train SVC...')
+
+    # Save the training parameters.
+    dist_pickle = {'svc': svc, 'scaler':X_scaler, "orient":orient,  "pix_per_cell":pix_per_cell ,
+                   "cell_per_block": cell_per_block, "spatial_size":spatial_size, "hist_bins": hist_bins}
+
+    pickle.dump(dist_pickle, open("svc_pickle.p", "wb"))
+
+def predict():
+    vp = VideoProcessor()
+
+    dist_pickle = pickle.load(open("svc_pickle.p", "rb"))
+    svc = dist_pickle["svc"]
+    X_scaler = dist_pickle["scaler"]
+    orient = dist_pickle["orient"]
+    pix_per_cell = dist_pickle["pix_per_cell"]
+    cell_per_block = dist_pickle["cell_per_block"]
+    spatial_size = dist_pickle["spatial_size"]
+    hist_bins = dist_pickle["hist_bins"]
+
+    color_space = 'YCrCb'  # ''RGB'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb  ( YCrCb = LUV? > HLS > HSV > > YUV > RGB)
+    hog_channel = "ALL"  # 2  # Can be 0, 1, 2, or "ALL" ( "ALL" > 0 > 1> 2)
+    spatial_feat = True  # Spatial features on or off
+    hist_feat = True  # Histogram features on or off
+    hog_feat = True  # HOG features on or off
+
+    y_start_stop = [400, 670]  # Min and max in y to search in slide_window()
+
+
+    test_images = glob.glob(TEST_IMG_DIR + '**/*.jpg', recursive=True)
+
+    for t_image in test_images:
+        image = mpimg.imread(t_image)
+        draw_image = np.copy(image)
+
+        # Uncomment the following line if you extracted training
+        # data from .png images (scaled 0 to 1 by mpimg) and the
+        # image you are searching is a .jpg (scaled 0 to 255)
+        image = image.astype(np.float32)/255
+
+        windows = vp.slide_window(image, x_start_stop=[None, None], y_start_stop=y_start_stop,
+                               xy_window=(96, 96), xy_overlap=(0.5, 0.5))
+
+        hot_windows = vp.search_windows(image, windows, svc, X_scaler, color_space=color_space,
+                                     spatial_size=spatial_size, hist_bins=hist_bins,
+                                     orient=orient, pix_per_cell=pix_per_cell,
+                                     cell_per_block=cell_per_block,
+                                     hog_channel=hog_channel, spatial_feat=spatial_feat,
+                                     hist_feat=hist_feat, hog_feat=hog_feat)
+
+        window_img = vp.draw_boxes(draw_image, hot_windows, color=(0, 0, 255), thick=6)
+
+        plt.imshow(window_img)
+
+        plt.show()
+
 def main():
     # Rubric #2
-    # display_sample_training_images()
-    display_training_image_features()
+    # display_training_images()
+    # display_training_image_features()
 
     # Rubric #3
+    # train_classifier()
+
+    # Rubric 4.1, 4.2
+    predict()
+
 
 if __name__ == '__main__':
     main()

@@ -33,8 +33,8 @@ The goals / steps of this project are the following:
 
 ####1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  
 You can submit your writeup as markdown or pdf.  
-Used file from [here](https://github.com/udacity/CarND-Vehicle-Detection/blob/master/writeup_template.md) as a template writeup 
-for this project and a starting point.  
+Used file from [here](https://github.com/udacity/CarND-Vehicle-Detection/blob/master/writeup_template.md) as a template and starting point writeup 
+for this project.  
 
 
 ###Histogram of Oriented Gradients (HOG)
