@@ -3,12 +3,16 @@ import cv2
 
 import matplotlib.pyplot as plt
 import io
+import pickle
+import time
 
 from skimage.feature import hog
-
+from scipy.ndimage.measurements import label
 
 TEST_IMG_DIR = "./test_images/"
-
+HEAT_MAX = 25
+HEAT_MIN = 0
+HEAT_THRESHOLD = 5
 
 class VideoProcessor(object):
     '''
@@ -19,10 +23,54 @@ class VideoProcessor(object):
 
         self.first_time = True # so that we can initialize
 
+        # Model was training using below features and parameters.
+        dist_pickle = pickle.load(open("svc_pickle.p", "rb"))
+        self.dist_pickle = dist_pickle
+        self.svc = dist_pickle["svc"]
+        self.X_scaler = dist_pickle["scaler"]
+        self.orient = dist_pickle["orient"]
+        self.pix_per_cell = dist_pickle["pix_per_cell"]
+        self.cell_per_block = dist_pickle["cell_per_block"]
+        self.spatial_size = dist_pickle["spatial_size"]
+        self.hist_bins = dist_pickle["hist_bins"]
+
+        self.color_space = 'YCrCb'  # ''RGB'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb  ( YCrCb = LUV? > HLS > HSV > > YUV > RGB)
+        self.hog_channel = "ALL"  # 2  # Can be 0, 1, 2, or "ALL" ( "ALL" > 0 > 1> 2)
+        self.spatial_feat = True  # Spatial features on or off
+        self.hist_feat = True  # Histogram features on or off
+        self.hog_feat = True  # HOG features on or off
+
+        self.heat = None
+        self.norm = plt.Normalize(vmin=HEAT_MIN, vmax=HEAT_MAX)
 
     def pipeline(self, img):
 
-        return img
+        ret_img, bin_img_heatmaps, bin_img_windows = self.find_cars_with_heatmap(img)
+
+
+        norm_heatmap = self.norm(bin_img_heatmaps)
+        # heatmap_img = (np.dstack((norm_heatmap * 255, norm_heatmap * 255 * 0.7, norm_heatmap * 255 * 0.7))).astype(np.uint8)
+        # heatmap_img = (np.dstack((norm_heatmap * 255, norm_heatmap * 255, norm_heatmap * 255))).astype(np.uint8)
+        heatmap_img = (np.dstack((norm_heatmap * 255, norm_heatmap, norm_heatmap))).astype(np.uint8)
+
+        # bin_win = np.zeros_like(img[:, :, :]).astype(np.ubyte)
+
+        bin_img_win_resized = cv2.resize(bin_img_windows, (0, 0), fx=0.3, fy=0.3)  #
+        bin_img_heatmap_resized = cv2.resize(heatmap_img, (0, 0), fx=0.3, fy=0.3)  #
+        ret_img[:250, :, :] = ret_img[:250, :, :] * .4
+        (h, w, _) = bin_img_win_resized.shape
+
+        ret_img[20:20 + h, 20:20 + w, :] = bin_img_win_resized
+
+        ret_img[20:20 + h, 40 + w:40 + w + w, :] = bin_img_heatmap_resized
+
+        # txt_x_loc = 20 + 20 + w + w + 20
+        # cv2.putText(img, 'Curvature: L {0:05}m, R {1:05}m'.format(int(left_curverad), int(right_curverad)),
+        #             (txt_x_loc, 80), cv2.FONT_HERSHEY_SIMPLEX, .8, (255, 255, 255), 2)
+        #
+        # cv2.putText(img, 'Vehicle Offset: {0:.3f} m'.format(camera_offset),
+        #             (txt_x_loc, 140), cv2.FONT_HERSHEY_SIMPLEX, .8, (255, 255, 255), 2)
+        return ret_img
 
     def convert_color(self, img, conv='RGB2YCrCb'):
 
@@ -36,6 +84,22 @@ class VideoProcessor(object):
             return cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
         if conv == 'RGB2LUV':
             return cv2.cvtColor(img, cv2.COLOR_RGB2LUV)
+
+    def convert_rgb_to_color(self, img, color_space):
+        if color_space != 'RGB':
+            if color_space == 'HSV':
+                feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+            elif color_space == 'LUV':
+                feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2LUV)
+            elif color_space == 'HLS':
+                feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+            elif color_space == 'YUV':
+                feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
+            elif color_space == 'YCrCb':
+                feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
+        else:
+            feature_image = np.copy(img)
+        return feature_image
 
     def bin_spatial(self, img, size=(32, 32)):
         color1 = cv2.resize(img[:, :, 0], size).ravel()
@@ -82,19 +146,7 @@ class VideoProcessor(object):
         # 1) Define an empty list to receive features
         img_features = []
         # 2) Apply color conversion if other than 'RGB'
-        if color_space != 'RGB':
-            if color_space == 'HSV':
-                feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
-            elif color_space == 'LUV':
-                feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2LUV)
-            elif color_space == 'HLS':
-                feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
-            elif color_space == 'YUV':
-                feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
-            elif color_space == 'YCrCb':
-                feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
-        else:
-            feature_image = np.copy(img)
+        feature_image = self.convert_rgb_to_color(img, color_space)
         # 3) Compute spatial features if flag is set
         if spatial_feat == True:
             spatial_features = self.bin_spatial(feature_image, size=spatial_size)
@@ -170,12 +222,20 @@ class VideoProcessor(object):
 
     # Define a function you will pass an image
     # and the list of windows to be searched (output of slide_windows())
-    def search_windows(self, img, windows, clf, scaler, color_space='RGB',
-                       spatial_size=(32, 32), hist_bins=32,
-                       hist_range=(0, 256), orient=9,
-                       pix_per_cell=8, cell_per_block=2,
-                       hog_channel=0, spatial_feat=True,
-                       hist_feat=True, hog_feat=True):
+    def search_windows(self, img, windows):
+        svc = self.svc
+        X_scaler = self.X_scaler
+        color_space = self.color_space
+        spatial_size = self.spatial_size
+        hist_bins = self.hist_bins
+        orient = self.orient
+        pix_per_cell = self.pix_per_cell
+        cell_per_block = self.cell_per_block
+        hog_channel = self.hog_channel
+        spatial_feat = self.spatial_feat
+        hist_feat = self.hist_feat
+        hog_feat = self.hog_feat
+
         # 1) Create an empty list to receive positive detection windows
         on_windows = []
         # 2) Iterate over all windows in the list
@@ -190,9 +250,9 @@ class VideoProcessor(object):
                                            hog_channel=hog_channel, spatial_feat=spatial_feat,
                                            hist_feat=hist_feat, hog_feat=hog_feat)
             # 5) Scale extracted features to be fed to classifier
-            test_features = scaler.transform(np.array(features).reshape(1, -1))
+            test_features = X_scaler.transform(np.array(features).reshape(1, -1))
             # 6) Predict using your classifier
-            prediction = clf.predict(test_features)
+            prediction = svc.predict(test_features)
             # 7) If positive (prediction == 1) then save the window
             if prediction == 1:
                 on_windows.append(window)
@@ -207,7 +267,7 @@ class VideoProcessor(object):
             heatmap[box[0][1]:box[1][1], box[0][0]:box[1][0]] += 1
 
         # Return updated heatmap
-        return heatmap  # Iterate through list of bboxes
+        return heatmap
 
 
     def apply_threshold(self, heatmap, threshold):
@@ -227,7 +287,6 @@ class VideoProcessor(object):
         # Return the image copy with boxes drawn
         return imcopy
 
-
     def draw_labeled_bboxes(self, img, labels):
         # Iterate through all detected cars
         for car_number in range(1, labels[1] + 1):
@@ -237,8 +296,239 @@ class VideoProcessor(object):
             nonzeroy = np.array(nonzero[0])
             nonzerox = np.array(nonzero[1])
             # Define a bounding box based on min/max x and y
-            bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
-            # Draw the box on the image
-            cv2.rectangle(img, bbox[0], bbox[1], (0, 0, 255), 6)
+            xl = np.min(nonzerox)
+            xh = np.max(nonzerox)
+            yl = np.min(nonzeroy)
+            yh = np.max(nonzeroy)
+
+            # print ("### X/y = {}".format( int( (yh-yl)/(xh-xl))))
+
+            if (int( (yh-yl)/(xh-xl)) < 2):
+                bbox = ((xl, yl), (xh, yh))
+
+                # Draw the box on the image
+                cv2.rectangle(img, bbox[0], bbox[1], (0, 0, 255), 6)
         # Return the image
         return img
+
+    def find_cars_at_scale(self, ctrans_tosearch, ystart, ystop, scale):
+        '''
+        
+        :param ctrans_tosearch: image segment to be scanned already in choosen color space  
+        :param ystart: y start in the original image
+        :param ystop:  y stop in the original image
+        :param scale: scale factor, 1 for 64x64, 1.5 for 96x96, 0.5 for 32x32
+         
+        :return: box_list in original image co-ordinates using ystart.
+        '''
+        svc = self.svc
+        X_scaler = self.X_scaler
+        spatial_size = self.spatial_size
+        hist_bins = self.hist_bins
+        orient = self.orient
+        pix_per_cell = self.pix_per_cell
+        cell_per_block = self.cell_per_block
+
+        # hog_channel = self.hog_channel
+        # spatial_feat = self.spatial_feat
+        # hist_feat = self.hist_feat
+        # hog_feat = self.hog_feat
+
+        if scale != 1:
+            imshape = ctrans_tosearch.shape
+            ctrans_tosearch = cv2.resize(ctrans_tosearch, (np.int(imshape[1] / scale), np.int(imshape[0] / scale)))
+
+        ch1 = ctrans_tosearch[:, :, 0]
+        ch2 = ctrans_tosearch[:, :, 1]
+        ch3 = ctrans_tosearch[:, :, 2]
+
+        # Define blocks and steps as above
+        nxblocks = (ch1.shape[1] // pix_per_cell) - 1
+        nyblocks = (ch1.shape[0] // pix_per_cell) - 1
+        # nfeat_per_block = orient * cell_per_block ** 2
+        # 64 was the orginal sampling rate, with 8 cells and 8 pix per cell
+        window = 64
+        nblocks_per_window = (window // pix_per_cell) - 1
+        cells_per_step = 2  # Instead of overlap, define how many cells to step
+        nxsteps = (nxblocks - nblocks_per_window) // cells_per_step
+        nysteps = (nyblocks - nblocks_per_window) // cells_per_step
+
+        # Compute individual channel HOG features for the entire image
+        hog1 = self.get_hog_features(ch1, orient, pix_per_cell, cell_per_block, feature_vec=False)
+        hog2 = self.get_hog_features(ch2, orient, pix_per_cell, cell_per_block, feature_vec=False)
+        hog3 = self.get_hog_features(ch3, orient, pix_per_cell, cell_per_block, feature_vec=False)
+
+        box_list = []
+        nv_box_list = []
+
+        for xb in range(nxsteps):
+            for yb in range(nysteps):
+                ypos = yb * cells_per_step
+                xpos = xb * cells_per_step
+                # Extract HOG for this patch
+                hog_feat1 = hog1[ypos:ypos + nblocks_per_window, xpos:xpos + nblocks_per_window].ravel()
+                hog_feat2 = hog2[ypos:ypos + nblocks_per_window, xpos:xpos + nblocks_per_window].ravel()
+                hog_feat3 = hog3[ypos:ypos + nblocks_per_window, xpos:xpos + nblocks_per_window].ravel()
+                hog_features = np.hstack((hog_feat1, hog_feat2, hog_feat3))
+
+                xleft = xpos * pix_per_cell
+                ytop = ypos * pix_per_cell
+
+                # Extract the image patch
+                #subimg = cv2.resize(ctrans_tosearch[ytop:ytop + window, xleft:xleft + window], (64, 64)) # already 64x64, resize needed?
+                subimg = ctrans_tosearch[ytop:ytop + window, xleft:xleft + window]
+
+                # Get color features
+                spatial_features = self.bin_spatial(subimg, size=spatial_size)
+                hist_features = self.color_hist(subimg, nbins=hist_bins)
+
+                # Scale features and make a prediction
+                test_features = X_scaler.transform(
+                    np.hstack((spatial_features, hist_features, hog_features)).reshape(1, -1))
+                # test_features = X_scaler.transform(np.hstack((shape_feat, hist_feat)).reshape(1, -1))
+                test_prediction = svc.predict(test_features)
+
+                if test_prediction == 1:
+                    xbox_left = np.int(xleft * scale)
+                    ytop_draw = np.int(ytop * scale)
+                    win_draw = np.int(window * scale)
+                    box_list.append([(xbox_left, ytop_draw + ystart),
+                                     (xbox_left + win_draw, ytop_draw + win_draw + ystart) ]) # each "box" takes the form ((x1, y1), (x2, y2))
+                    # cv2.rectangle(draw_img, (xbox_left, ytop_draw + ystart),
+                    #              (xbox_left + win_draw, ytop_draw + win_draw + ystart), (0, 0, 255), 6)
+                # else:
+                #     xbox_left = np.int(xleft * scale)
+                #     ytop_draw = np.int(ytop * scale)
+                #     win_draw = np.int(window * scale)
+                #     nv_box_list.append([(xbox_left, ytop_draw + ystart),
+                #                      (xbox_left + win_draw, ytop_draw + win_draw + ystart) ])
+
+        return box_list, nv_box_list
+
+
+    def draw_windows_all_scales(self, img, jpg_image=True):
+        # t = time.time()
+
+        color_space = self.color_space
+
+        ystart = 400
+        ystop = 656
+        scale = 1.5
+
+        draw_img = np.copy(img)
+
+        img_tosearch = img[ystart:ystop, :, :]
+
+        if (jpg_image):
+            img_tosearch = img_tosearch.astype(np.float32) / 255 # If test image is JPG, MPEG stream. bcoz we trained in PNG
+
+        ctrans_tosearch = self.convert_rgb_to_color(img_tosearch, color_space)
+
+        box_list, nv_box_list = self.find_cars_at_scale(ctrans_tosearch, ystart, ystop, scale)
+        draw_img = self.draw_boxes(draw_img, box_list + nv_box_list, color=(255, 0, 0), thick=3)
+
+        ystop = 528
+        scale = 1.0
+        ctrans_tosearch = ctrans_tosearch[0:128, :, :]
+        box_list, nv_box_list = self.find_cars_at_scale(ctrans_tosearch, ystart, ystop, scale)
+        #draw_img = self.draw_boxes(draw_img, box_list + nv_box_list, color=(0, 255, 0), thick=2)
+
+
+        ystop = 464
+        scale = 0.75
+        ctrans_tosearch = ctrans_tosearch[0:64, :, :]
+        box_list, nv_box_list =  self.find_cars_at_scale(ctrans_tosearch, ystart, ystop, scale)
+        # draw_img = self.draw_boxes(draw_img, box_list + nv_box_list, color=(0, 0, 255), thick=2)
+
+
+        fig = plt.figure()
+        plt.subplot(111)
+        plt.imshow(draw_img)
+        plt.title('Sliding Windows and Scales')
+        plt.show()
+
+
+    # Define a single function that can extract features using hog sub-sampling and make predictions
+    def find_cars_with_heatmap(self, img, jpg_image=True):
+        # t = time.time()
+
+        color_space = self.color_space
+
+        ystart = 400
+        ystop = 656
+        scale = 1.5
+
+        draw_img = np.copy(img)
+
+        img_tosearch = img[ystart:ystop, :, :]
+
+        if (jpg_image):
+            img_tosearch = img_tosearch.astype(np.float32) / 255 # If test image is JPG, MPEG stream. bcoz we trained in PNG
+
+        ctrans_tosearch = self.convert_rgb_to_color(img_tosearch, color_space)
+
+        box_list, nv_box_list = self.find_cars_at_scale(ctrans_tosearch, ystart, ystop, scale)
+
+        ystop = 528
+        scale = 1.0
+        ctrans_tosearch = ctrans_tosearch[0:128, :, :]
+        box_list_t, nv_box_list_t = self.find_cars_at_scale(ctrans_tosearch, ystart, ystop, scale)
+        box_list = box_list + box_list_t
+        # nv_box_list = nv_box_list + nv_box_list_t
+
+        ystop = 464
+        scale = 0.75
+        ctrans_tosearch = ctrans_tosearch[0:64, :, :]
+        box_list_t, nv_box_list_t =  self.find_cars_at_scale(ctrans_tosearch, ystart, ystop, scale)
+        box_list = box_list + box_list_t
+
+        # print("### number of boxes predicted {}".format(len(box_list)))
+
+        bin_win = np.zeros_like(img[:, :, :]).astype(np.ubyte)
+        bin_win = self.draw_boxes(bin_win, box_list)
+        # draw_img = self.draw_boxes(draw_img, nv_box_list, color=(255, 0, 0), thick=2 )
+
+        if (self.first_time):
+            self.first_time = False
+            self.heat = np.zeros_like(img[:, :, 0]).astype(np.float)
+
+
+        self.heat -= 1
+        self.heat[self.heat < HEAT_MIN] = HEAT_MIN  # set -ve ones to zeros.
+        self.heat[self.heat > HEAT_MAX] = HEAT_MAX
+
+        # Add heat to each box in box list
+        heat = self.add_heat(self.heat, box_list)
+
+        # Apply threshold to help remove false positives
+        heat = self.apply_threshold(heat, HEAT_THRESHOLD)
+
+        # Visualize the heatmap when displaying
+        heatmap = np.clip(heat, 0, 255)
+
+        # Find final boxes from heatmap using label function
+        labels = label(heatmap)
+
+        # print("### # of Labels: {}".format(labels[1]))
+
+        # draw_img = self.draw_labeled_bboxes(np.copy(draw_img), labels)
+        draw_img = self.draw_labeled_bboxes(draw_img, labels)
+
+        # t2 = time.time()
+        # print(round(t2 - t, 2), 'Seconds to predict a image SVC...')
+        #
+        # fig = plt.figure()
+        # plt.subplot(131)
+        # plt.imshow(draw_img)
+        # plt.title('Car Positions')
+        # plt.subplot(132)
+        # plt.imshow(heatmap, cmap='hot')
+        # plt.title('Heat Map')
+        # plt.subplot(133)
+        # plt.imshow(bin_win)
+        # plt.title('Bin Windows')
+        #
+        # fig.tight_layout()
+        # plt.show()
+
+        return draw_img, heatmap,bin_win

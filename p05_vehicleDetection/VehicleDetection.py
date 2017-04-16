@@ -13,6 +13,8 @@ from sklearn.svm import LinearSVC
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 
+import cProfile
+
 
 TEST_IMG_DIR = "./test_images/"
 TRAIN_IMG_DIR = "./train_images/"
@@ -278,24 +280,24 @@ def extract_features(imgs, color_space='RGB', spatial_size=(32, 32),
     # Return list of feature vectors
     return features
 
-def train_classifier():
-    # Divide up into cars and notcars
-    # images = glob.glob('*.jpeg')
-    images = glob.glob(TRAIN_IMG_DIR + 'vehicles/**/GTI*/*.png', recursive=True)
+def train():
+    # images = glob.glob(TRAIN_IMG_DIR + 'vehicles/**/GTI*/*.png', recursive=True)
+    images = glob.glob(TRAIN_IMG_DIR + 'vehicles/**/*.png', recursive=True)
     cars = []
     notcars = []
     for image in images:
         cars.append(image)
 
-    images = glob.glob(TRAIN_IMG_DIR + 'non-vehicles/**/GTI*/*.png', recursive=True)
+    # images = glob.glob(TRAIN_IMG_DIR + 'non-vehicles/**/GTI*/*.png', recursive=True)
+    images = glob.glob(TRAIN_IMG_DIR + 'non-vehicles/**/*.png', recursive=True)
     for image in images:
         notcars.append(image)
 
 
     print("Number of vehicle samples: {}\nNumber of non-vehicle samples {}".format(len(cars), len(notcars)))
-    sample_size = 500
-    cars = cars[0:sample_size]
-    notcars = notcars[0:sample_size]
+    # sample_size = 500
+    # cars = cars[0:sample_size]
+    # notcars = notcars[0:sample_size]
 
 
     color_space = 'YCrCb'  # ''RGB'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb  ( YCrCb = LUV? > HLS > HSV > > YUV > RGB)
@@ -308,7 +310,6 @@ def train_classifier():
     spatial_feat = True  # Spatial features on or off
     hist_feat = True  # Histogram features on or off
     hog_feat = True  # HOG features on or off
-    y_start_stop = [400, 656]  # Min and max in y to search in slide_window() 400, 670
 
     car_features = extract_features(cars, color_space=color_space,
                                     spatial_size=spatial_size, hist_bins=hist_bins,
@@ -348,6 +349,10 @@ def train_classifier():
     t2 = time.time()
     print(round(t2 - t, 2), 'Seconds to train SVC...')
 
+    # Check the score of the SVC
+    print('Test Accuracy of SVC = ', round(svc.score(X_test, y_test), 4))
+
+
     # Save the training parameters.
     dist_pickle = {'svc': svc, 'scaler':X_scaler, "orient":orient,  "pix_per_cell":pix_per_cell ,
                    "cell_per_block": cell_per_block, "spatial_size":spatial_size, "hist_bins": hist_bins}
@@ -356,29 +361,14 @@ def train_classifier():
 
 def predict():
     vp = VideoProcessor()
-
-    dist_pickle = pickle.load(open("svc_pickle.p", "rb"))
-    svc = dist_pickle["svc"]
-    X_scaler = dist_pickle["scaler"]
-    orient = dist_pickle["orient"]
-    pix_per_cell = dist_pickle["pix_per_cell"]
-    cell_per_block = dist_pickle["cell_per_block"]
-    spatial_size = dist_pickle["spatial_size"]
-    hist_bins = dist_pickle["hist_bins"]
-
-    color_space = 'YCrCb'  # ''RGB'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb  ( YCrCb = LUV? > HLS > HSV > > YUV > RGB)
-    hog_channel = "ALL"  # 2  # Can be 0, 1, 2, or "ALL" ( "ALL" > 0 > 1> 2)
-    spatial_feat = True  # Spatial features on or off
-    hist_feat = True  # Histogram features on or off
-    hog_feat = True  # HOG features on or off
-
-    y_start_stop = [400, 670]  # Min and max in y to search in slide_window()
-
+    # y_start_stop = [400, 670]  # Min and max in y to search in slide_window()
+    y_start_stop = [400, 656]  # Min and max in y to search in slide_window()
 
     test_images = glob.glob(TEST_IMG_DIR + '**/*.jpg', recursive=True)
 
     for t_image in test_images:
         image = mpimg.imread(t_image)
+        t = time.time()
         draw_image = np.copy(image)
 
         # Uncomment the following line if you extracted training
@@ -389,30 +379,95 @@ def predict():
         windows = vp.slide_window(image, x_start_stop=[None, None], y_start_stop=y_start_stop,
                                xy_window=(96, 96), xy_overlap=(0.5, 0.5))
 
-        hot_windows = vp.search_windows(image, windows, svc, X_scaler, color_space=color_space,
-                                     spatial_size=spatial_size, hist_bins=hist_bins,
-                                     orient=orient, pix_per_cell=pix_per_cell,
-                                     cell_per_block=cell_per_block,
-                                     hog_channel=hog_channel, spatial_feat=spatial_feat,
-                                     hist_feat=hist_feat, hog_feat=hog_feat)
+        hot_windows = vp.search_windows(image, windows)
+
+        print ("### # of Hot windows {}".format(len(hot_windows)))
 
         window_img = vp.draw_boxes(draw_image, hot_windows, color=(0, 0, 255), thick=6)
 
+        t2 = time.time()
+        print(round(t2 - t, 2), 'Seconds to predict a image SVC...')
         plt.imshow(window_img)
 
         plt.show()
 
+def predict2():
+    # find_cars_with_heatmap
+    # vp = VideoProcessor()
+    # y_start_stop = [400, 656]  # Min and max in y to search in slide_window()
+
+    test_images = glob.glob(TEST_IMG_DIR + '**/test1.jpg', recursive=True)
+    # test_images = glob.glob("gtest/imagefile001.jpg", recursive=True)
+
+    for t_image in test_images:
+        vp = VideoProcessor()
+        image = mpimg.imread(t_image)
+        vp.find_cars_with_heatmap(image, jpg_image=True)
+
+def sliding_windows():
+    test_images = glob.glob(TEST_IMG_DIR + '**/test1.jpg', recursive=True)
+    # test_images = glob.glob("gtest/imagefile001.jpg", recursive=True)
+
+    for t_image in test_images:
+        vp = VideoProcessor()
+        image = mpimg.imread(t_image)
+        vp.draw_windows_all_scales(image, jpg_image=True)
+
+def find_vehicles_in_video():
+    video = VideoProcessor()
+
+    p05_output = 'p05_out.mp4'
+    clip1 = VideoFileClip("../p04_advLaneFinding/project_video.mp4")
+    # clip1 = VideoFileClip("./project_video.mp4")
+    # clip1 = VideoFileClip("./project_video_clp1.mp4")
+    p05_video_clip = clip1.fl_image(video.pipeline)
+    p05_video_clip.write_videofile(p05_output, audio=False)
+
+    # 235/236 [01:12<00:00,  3.17it/s]
+
+# [MoviePy] >>>> Building video p05_out.mp4
+# [MoviePy] Writing video p05_out.mp4
+# 100%|█████████▉| 1260/1261 [15:42<00:00,  1.34it/s]
+# [MoviePy] Done.
+# [MoviePy] >>>> Video ready: p05_out.mp4
+
+def extract_clip_pipeline(img):
+    return img
+
+def extract_clip():
+    video = VideoProcessor()
+
+    clip1_out = 'project_video_clp3.mp4'
+    # clip1 = VideoFileClip("../p04_advLaneFinding/project_video.mp4")
+    # clip1 = clip1.cutout(0, 25)
+    clip1 = VideoFileClip("project_video_clp1.mp4")
+    clip1 = clip1.cutout(10, 26)
+    video_clip = clip1.fl_image(extract_clip_pipeline)
+    video_clip.write_videofile(clip1_out, audio=False)
+
 def main():
+    # extract_clip()
     # Rubric #2
     # display_training_images()
     # display_training_image_features()
 
     # Rubric #3
-    # train_classifier()
+    # Number of vehicle samples: 8792
+    # Number of non-vehicle samples 8968
+    # Using: 9 orientations 8 pixels per cell and 2 cells per block
+    # Feature vector length: 6108
+    # 13.21 Seconds to train SVC...
+    # Test Accuracy of SVC =  0.993
+    # train()
 
     # Rubric 4.1, 4.2
-    predict()
+    # predict()
+    # cProfile.run('predict2()')
+    # predict2()
+    sliding_windows()
 
+    # Rubric 5
+    # find_vehicles_in_video()
 
 if __name__ == '__main__':
     main()
