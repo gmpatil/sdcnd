@@ -1,4 +1,4 @@
-##Writeup Report for Vehicle Detection Project
+## Writeup Report for Vehicle Detection Project
 
 ---
 
@@ -42,20 +42,20 @@ The goals / steps of this project are the following:
 [video1]: ./p05_out_full.mp4
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
-###Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
+### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
 
 ---
-###Writeup / README
+### Writeup / README
 
-####1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  
+#### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  
 You can submit your writeup as markdown or pdf.  
 Used file from [here](https://github.com/udacity/CarND-Vehicle-Detection/blob/master/writeup_template.md) as a template and starting point writeup 
 for this project.  
 
 
-###Histogram of Oriented Gradients (HOG)
+### Histogram of Oriented Gradients (HOG)
 
-####1. Explain how (and identify where in your code) you extracted HOG features from the training images.
+#### 1. Explain how (and identify where in your code) you extracted HOG features from the training images.
 
 The code for this step is contained in the method `get_hog_features` of class `VideoProcessor.py`.
 
@@ -78,14 +78,14 @@ and `cells_per_block=(2, 2)`:
 
 ![alt text][image13]
 
-####2. Explain how you settled on your final choice of HOG parameters.
+#### 2. Explain how you settled on your final choice of HOG parameters.
 
 I tried various combinations of parameters. Mainly tried different color spaces to get HOG orientations, and found YCrCb 
 and LUV faired better on test images as compared to HLS, HSV, YUV and RGB color spaces. And YCrCb slightly better than LUV 
 with better or more true positive and less false positive detections. Adding all the HOG channels, gave better result 
 than just using individual channels. Method `train()` in  `VehicleDetection.py` .
 
-####3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
+#### 3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
 I started training linear SVM initially using 100 each images  each of vehicle and non-vehicle classes. Gradually as some
  of the parameters started showing promising results, increases the training size and finally training and tested using all 
@@ -145,9 +145,9 @@ Parameters values finally used to train Linear SVC classifier are as below.
 ```    
     
 
-###Sliding Window Search
+### Sliding Window Search
 
-####1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
+#### 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 Started with scaling factor of 1.5 (64 * 1.5 = 96x96px) as shown by Rayn Keenan in one of the session, which gave good 
 performance compared to other factor like 1.0 and 0.75 alone. But gradually added other factor Wondow sliding to improve/increase
  true positives. User 8 pixel per cell and 2 cells per step/stride.  
@@ -172,7 +172,7 @@ See method `find_cars_at_scale()` in class `VideoProcessor.py` sliding window se
 See method `find_cars_with_heatmap()` in class `VideoProcessor.py` different scaling used search vehicles using 
 `find_cars_at_scale()` method.
 
-####2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
+#### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
 I searched on two scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color 
 in the feature vector, which provided a nice result.  Here are some example images:
@@ -209,11 +209,11 @@ Test Image-6
 
 ### Video Implementation
 
-####1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
+#### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
 Here's a [link to my video result](./p05_out_full.mp4) 
 
 
-####2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
+#### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
 I recorded the positions of positive detections in each frame of the video and also kept count of running heat count
 from previous frames.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  
@@ -267,9 +267,9 @@ the output of `scipy.ndimage.measurements.label()` on the integrated heatmap
 
 ---
 
-###Discussion
+### Discussion
 
-####1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+#### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
 Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline 
 might fail and how I might improve it if I were going to pursue this project further.
