@@ -1,0 +1,13 @@
+Hi,
+Please find attached Zip file containing below files related P05-Vehicle Detection project.
+ VehicleDetection.py - Main driver python program triggers pipeline processing and other utility methods to explore training and test data, and training SVC classifier.
+VideoProcessor.py - is the core class to process video stream/pipeline processing, windows scanning/searching, using classifier to detect vehicles, heatmaps, etc.
+writeup_report.pdf  - Writeup report in PDF format
+writeup_report.md   - Writeup report in Markdown format
+p05_out_full.mp4 - Final Video output of pipeline processing
+output_images/*.* - contains all the images used in the writeup_report.md
+
+These file are also uploaded to Github repository at below URL.
+https://github.com/gmpatil/sdcnd/blob/master/p05_vehicleDetection/writeup_report.md
+
+thanks
