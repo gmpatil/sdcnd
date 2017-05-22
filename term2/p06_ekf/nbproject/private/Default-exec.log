@@ -1,0 +1,11 @@
+called: /usr/bin/g++
+	/home/girish/dev/github/sdcnd/term2/p06_ekf
+	/usr/bin/g++
+	-g3
+	-gdwarf-2
+	-std=c++11
+	-o
+	CMakeFiles/ExtendedKF.dir/src/main.cpp.o
+	-c
+	/home/girish/dev/github/sdcnd/term2/p06_ekf/src/main.cpp
+
