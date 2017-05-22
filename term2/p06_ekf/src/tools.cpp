@@ -79,6 +79,7 @@ MatrixXd Tools::CalculateJacobian(const VectorXd& x_state) {
 	if ( (px2_py2 == 0.0) || (sqrt_px2_py2 == 0.0) || (sqrtOfCube_px2_py2 == 0.0) ) {
     cout << "Divide by zero!" << endl;
     return Hj;
+    //return NULL; // does not work
   }
         
 	// compute the Jacobian matrix
