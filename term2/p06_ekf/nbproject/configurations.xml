@@ -40,7 +40,7 @@
           <buildCommandWorkingDir>.</buildCommandWorkingDir>
           <buildCommand>${MAKE} -f Makefile</buildCommand>
           <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
-          <executablePath></executablePath>
+          <executablePath>ExtendedKF</executablePath>
           <ccTool>
             <incDir>
               <pElem>.</pElem>
