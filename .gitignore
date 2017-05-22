@@ -71,4 +71,9 @@ term1/p05_vehicleDetection/examples/
 term1/p05_vehicleDetection/gtest/
 term1/p05_vehicleDetection/train_images/
 
+term2/p06_ekf/CMakeFiles/ExtendedKF.dir/*
+term2/p06_ekf/ExtendedKF
+term2/p06_ekf/nbproject/private/*
+
+
 
