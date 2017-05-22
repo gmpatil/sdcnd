@@ -95,7 +95,7 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       float ro = measurement_pack.raw_measurements_(0);
       float theta = measurement_pack.raw_measurements_(1);
       float ro_dot = measurement_pack.raw_measurements_(2);
-      
+      //ekf_.x_(0) = 
     }
     else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
       /**
