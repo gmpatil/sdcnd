@@ -8,6 +8,10 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 using std::vector;
 
+void generateAugmentedSigmaPoints(VectorXd x, MatrixXd P, MatrixXd* Xsig_out);
+void predictSigmaPoint(MatrixXd Xsig_aug, double delta_t, MatrixXd* Xsig_out);
+void predictMeanAndCovariance(MatrixXd Xsig_pred, VectorXd* x_out, MatrixXd* P_out);
+
 /**
  * Initializes Unscented Kalman filter
  */
@@ -121,8 +125,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     UpdateRadar(meas_package);
   } else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
     UpdateLidar(meas_package);
-  }
-  
+  }  
 }
 
 /**
@@ -132,11 +135,14 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
  */
 void UKF::Prediction(double delta_t) {
   /**
-  TODO:
-
   Complete this function! Estimate the object's location. Modify the state
   vector, x_. Predict sigma points, the state, and the state covariance matrix.
   */
+  MatrixXd Xsig_aug;
+  
+  generateAugmentedSigmaPoints(x_, P_, &Xsig_aug);
+  predictSigmaPoint(Xsig_aug, delta_t, &Xsig_pred_);
+  predictMeanAndCovariance(Xsig_pred_, &x_, &P_);
 }
 
 /**
@@ -284,9 +290,10 @@ void generateAugmentedSigmaPoints(VectorXd x, MatrixXd P, MatrixXd* Xsig_out) {
  * Predict sigma points.
  * 
  * @param Xsig_aug - augmented sigma points.
+ * @param delta_t - time in seconds between measurement updates
  * @param Xsig_out - predicted sigma points.
  */
-void sigmaPointPrediction(MatrixXd Xsig_aug, MatrixXd* Xsig_out) {
+void predictSigmaPoint(MatrixXd Xsig_aug, double delta_t, MatrixXd* Xsig_out) {
   //set state dimension
   int n_x = 5;
 
@@ -295,8 +302,6 @@ void sigmaPointPrediction(MatrixXd Xsig_aug, MatrixXd* Xsig_out) {
 
   //create matrix with predicted sigma points as columns
   MatrixXd Xsig_pred = MatrixXd(n_x, 2 * n_aug + 1);
-
-  double delta_t = 0.1; //time diff in sec
 
   //predict sigma points
   //avoid division by zero
