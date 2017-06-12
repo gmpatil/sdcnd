@@ -310,8 +310,7 @@ void predictSigmaPoint(MatrixXd Xsig_aug, double delta_t, MatrixXd* Xsig_out) {
   double sinPhi = 0.0;
   double deltaTsq = 0.0;
   
-  for (int i=0; i < (2 * n_aug + 1); i++ ) {
-    
+  for (int i=0; i < (2 * n_aug + 1); i++ ) {    
     phiDotDeltaT = Xsig_aug(4, i) * delta_t;
     cosPhi = cos(Xsig_aug(3, i));
     sinPhi = sin(Xsig_aug(3, i));
@@ -321,28 +320,20 @@ void predictSigmaPoint(MatrixXd Xsig_aug, double delta_t, MatrixXd* Xsig_out) {
       Xsig_pred(0, i) = Xsig_aug(0, i) 
               + (Xsig_aug(2, i)/Xsig_aug(4, i)) * (sin(Xsig_aug(3, i) + phiDotDeltaT)
               - sinPhi);
-
       Xsig_pred(1, i) = Xsig_aug(1, i) 
               + (Xsig_aug(2, i)/Xsig_aug(4, i)) * (-1.0 * cos(Xsig_aug(3, i) + phiDotDeltaT)
               + cosPhi);
-
       Xsig_pred(2, i) = Xsig_aug(2, i) ;
-
       Xsig_pred(3, i) = Xsig_aug(3, i) + phiDotDeltaT;
-
       Xsig_pred(4, i) = Xsig_aug(4, i) ;
     } else {
       // phiDotDeltaT = 0.0 ;
       Xsig_pred(0, i) = Xsig_aug(0, i) 
               + (Xsig_aug(2, i)) * cosPhi * delta_t ;
-
       Xsig_pred(1, i) = Xsig_aug(1, i) 
               + (Xsig_aug(2, i)) * sinPhi * delta_t ;
-
       Xsig_pred(2, i) = Xsig_aug(2, i) ;
-
       Xsig_pred(3, i) = Xsig_aug(3, i) ;
-
       Xsig_pred(4, i) = Xsig_aug(4, i) ;
     }
     
@@ -398,7 +389,8 @@ void predictMeanAndCovariance(MatrixXd Xsig_pred, VectorXd* x_out, MatrixXd* P_o
   for (int i=0; i < 2 * n_aug + 1; i++){
     x = x +  weights(i) * Xsig_pred.col(i) ; 
   } 
-
+  //x = Xsig_pred*weights;
+  
   //predicted state covariance matrix
   P.fill(0.0);
   for (int i = 0; i < 2 * n_aug + 1; i++) {  //iterate over sigma points
