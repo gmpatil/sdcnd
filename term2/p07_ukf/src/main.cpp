@@ -129,6 +129,12 @@ int main()
 
     	  VectorXd RMSE = tools.CalculateRMSE(estimations, ground_truth);
 
+        if (meas_package.sensor_type_ = MeasurementPackage::LASER){
+          tools.writeNIS(ukf.NIS_laser_, true);
+        } else {
+          tools.writeNIS(ukf.NIS_radar_, false);
+        }
+        
           json msgJson;
           msgJson["estimate_x"] = p_x;
           msgJson["estimate_y"] = p_y;

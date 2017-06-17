@@ -58,3 +58,17 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
   
   return rmse;
 }
+
+void Tools::writeNIS(double nis, bool lidar) {
+  if (!initialized){
+    lidar_nis_fl_.open("lidar_nis.txt");
+    radar_nis_fl_.open("radar_nis.txt");
+    initialized = true;
+  }
+  
+  if (lidar){
+    lidar_nis_fl_ << nis << std::endl;
+  } else {
+    radar_nis_fl_ << nis << std::endl;
+  }
+}
