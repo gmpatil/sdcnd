@@ -63,6 +63,7 @@ void Tools::writeNIS(double nis, bool lidar) {
   if (!initialized){
     lidar_nis_fl_.open("lidar_nis.txt");
     radar_nis_fl_.open("radar_nis.txt");
+    out_fl_.open("ukf_out.txt");
     initialized = true;
   }
   
@@ -71,4 +72,15 @@ void Tools::writeNIS(double nis, bool lidar) {
   } else {
     radar_nis_fl_ << nis << std::endl;
   }
+}
+
+void Tools::writeOutFile(string line){
+  if (!initialized){
+    lidar_nis_fl_.open("lidar_nis.txt");
+    radar_nis_fl_.open("radar_nis.txt");
+    out_fl_.open("ukf_out.txt");
+    initialized = true;
+  }
+
+  out_fl_ << line << endl;
 }

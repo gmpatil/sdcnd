@@ -12,6 +12,7 @@ class Tools {
   bool initialized = false;
   ofstream lidar_nis_fl_; 
   ofstream radar_nis_fl_ ;
+  ofstream out_fl_ ;
   
 public:
   /**
@@ -33,6 +34,7 @@ public:
    * Helper method to write to lidar or radar NIS file
    */
   void writeNIS(double nis, bool lidar);  
+  void writeOutFile(string line);
 };
 
 #endif /* TOOLS_H_ */

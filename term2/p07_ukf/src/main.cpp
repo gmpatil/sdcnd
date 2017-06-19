@@ -38,6 +38,8 @@ int main()
   vector<VectorXd> estimations;
   vector<VectorXd> ground_truth;
 
+  tools.writeOutFile("SensorType, Px_pred, Py_pred, Vx_pred, Vy_pred, Px_meas, Py_meas, Px_gt, Py_gt, Vx_gt, Vy_gt, NIS");
+  
   h.onMessage([&ukf,&tools,&estimations,&ground_truth](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -133,13 +135,45 @@ int main()
             //cout << "before calling CalculateRMSE" << endl;
             VectorXd RMSE = tools.CalculateRMSE(estimations, ground_truth);
             //cout << "after calling CalculateRMSE " <<endl;
-            
+       
+            ostringstream line;
+            string del = "," ;
             if (meas_package.sensor_type_ == MeasurementPackage::LASER){
               tools.writeNIS(ukf.NIS_laser_, true);
+              line << "L" << del;
             } else {
               tools.writeNIS(ukf.NIS_radar_, false);
+              line << "R" << del;              
             }
-        
+       
+            // Predictions
+            line << estimate(0) << del;
+            line << estimate(1) << del;
+            line << estimate(2) << del;
+            line << estimate(3) << del;
+            
+            // measurements
+            if (meas_package.sensor_type_ == MeasurementPackage::LASER){
+              line << meas_package.raw_measurements_(0) << del;
+              line << meas_package.raw_measurements_(1) << del;
+            } else {
+              line << meas_package.raw_measurements_(0) * cos(meas_package.raw_measurements_(1)) << del;
+              line << meas_package.raw_measurements_(0) * sin(meas_package.raw_measurements_(1)) << del;
+            }
+            
+            line << gt_values(0) << del;
+            line << gt_values(1) << del;
+            line << gt_values(2) << del;
+            line << gt_values(3) << del;
+            
+            if (meas_package.sensor_type_ == MeasurementPackage::LASER){
+              line << ukf.NIS_laser_ << del;
+            } else {
+              line << ukf.NIS_radar_ << del;
+            }
+            
+            tools.writeOutFile(line.str());
+            
             //cout << "after calling writeNIS" << endl;    
             
             json msgJson;

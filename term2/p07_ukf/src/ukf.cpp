@@ -128,8 +128,8 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       double rho_dot = meas_package.raw_measurements_(2);
       x_(0) = rho * cos(phi);  // px
       x_(1) = rho * sin(phi);  // py 
-      x_(2) = 0.0;             // vel. rho_dot != vel, not useful to set on data set 1. //fabs(rho_dot)
-      x_(3) = 0.0;             // yaw. phi != yaw, not useful to set on data set 1 //phi
+      x_(2) = 0.0;             // vel. rho_dot != vel, was not useful to set on data set 1. //fabs(rho_dot)
+      x_(3) = 0.0;             // yaw. phi != yaw, was not useful to set on data set 1 //phi
       x_(4) = 0.0;             // yaw rate
     } else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
       x_(0) = meas_package.raw_measurements_(0);  //px

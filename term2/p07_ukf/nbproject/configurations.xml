@@ -14,6 +14,7 @@
       <itemPath>Makefile</itemPath>
       <itemPath>nbproject/private/launcher.properties</itemPath>
     </logicalFolder>
+    <itemPath>ukf_output_visualizer.py</itemPath>
   </logicalFolder>
   <sourceFolderFilter>^(nbproject)$</sourceFolderFilter>
   <sourceRootList>
@@ -60,6 +61,8 @@
       <item path="src/ukf.cpp" ex="false" tool="1" flavor2="8">
         <ccTool flags="0">
         </ccTool>
+      </item>
+      <item path="ukf_output_visualizer.py" ex="false" tool="3" flavor2="0">
       </item>
     </conf>
   </confs>
