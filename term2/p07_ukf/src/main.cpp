@@ -128,19 +128,19 @@ int main()
 
             estimations.push_back(estimate);
             
-            cout << "Estimate:" << estimate << endl;
-            cout << "GT:" << gt_values << endl;
-            cout << "before calling CalculateRMSE" << endl;
+            cout << "Estimate:\n" << estimate << endl;
+            cout << "GT:\n" << gt_values << endl;
+            //cout << "before calling CalculateRMSE" << endl;
             VectorXd RMSE = tools.CalculateRMSE(estimations, ground_truth);
-            cout << "after calling CalculateRMSE " <<endl;
+            //cout << "after calling CalculateRMSE " <<endl;
             
-            if (meas_package.sensor_type_ = MeasurementPackage::LASER){
+            if (meas_package.sensor_type_ == MeasurementPackage::LASER){
               tools.writeNIS(ukf.NIS_laser_, true);
             } else {
               tools.writeNIS(ukf.NIS_radar_, false);
             }
         
-            cout << "after calling writeNIS" << endl;    
+            //cout << "after calling writeNIS" << endl;    
             
             json msgJson;
             msgJson["estimate_x"] = p_x;
