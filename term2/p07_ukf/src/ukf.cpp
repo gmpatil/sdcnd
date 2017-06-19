@@ -641,10 +641,9 @@ void updateStateForRadar(MatrixXd Xsig_pred, VectorXd x, MatrixXd P,
     VectorXd z_diff = Zsig.col(i) - z_pred;
 
     //angle normalization
-    x_diff(3) = normalizeAngle(x_diff(3)); 
-    x_diff(4) = x_diff(4); 
+    x_diff(3) = normalizeAngle(x_diff(3)); // yaw angle
     
-    z_diff(1) = normalizeAngle(z_diff(1)); 
+    z_diff(1) = normalizeAngle(z_diff(1));  // phi angle
     Tc = Tc + weights(i) * x_diff * z_diff.transpose();
   }  
   
@@ -707,8 +706,7 @@ void updateStateForLidar(MatrixXd Xsig_pred, VectorXd x, MatrixXd P,
     VectorXd z_diff = Zsig.col(i) - z_pred;
 
     //angle normalization
-    x_diff(3) = normalizeAngle(x_diff(3)); 
-    x_diff(4) = x_diff(4); 
+    x_diff(3) = normalizeAngle(x_diff(3));  // yaw angle
     Tc = Tc + weights(i) * x_diff * z_diff.transpose();
   }  
   
