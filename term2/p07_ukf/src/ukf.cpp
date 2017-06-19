@@ -522,10 +522,10 @@ UKF::UKF() {
   // the fastest legal sports car acceleration is currently 0 to 60 mph in 2.2
   // seconds. 0 to 60 mph in 2.2 seconds is about 12m/s^2.
   // For cycle it should be even less.
-  std_a_ = 1.5 ; //0.15; // 2.
+  std_a_ = 1.15 ; //0.15; // 2.
   
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = (M_PI/6.0);// .7 // 16 sec +/- 8 sec to circle  
+  std_yawdd_ = 0.55 ; //(M_PI/6.0);// .7 // 16 sec +/- 8 sec to circle  
 
   // Laser measurement noise standard deviation position1 in m
   std_laspx_ = 0.15;
