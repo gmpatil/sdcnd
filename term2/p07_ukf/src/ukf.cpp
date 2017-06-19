@@ -135,7 +135,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       x_(0) = meas_package.raw_measurements_(0);  //px
       x_(1) = meas_package.raw_measurements_(1);  //py
       x_(2) = 0.0;                                //vel
-      x_(3) = atan2(x_(1), x_(0));                //yaw
+      x_(3) = atan2(x_(1), x_(0));                //yaw   // yaw != phi = atan2(x_(1), x_(0));
       x_(4) = 0.0;
     }
 
@@ -148,12 +148,14 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     weights_ = weights;
     
     // wait for vehicle move away for the origin to finish initializing.
-    if (fabs(x_(0)) + fabs(x_(1)) < 1e-3)  {
-      is_initialized_ = false;
-    } else {    
-      // done initializing, no need to predict or update
-      is_initialized_ = true;
-    }
+//    if (fabs(x_(0)) + fabs(x_(1)) < 1e-3)  {
+//      is_initialized_ = false;
+//    } else {    
+//      // done initializing, no need to predict or update
+//      is_initialized_ = true;
+//    }
+    is_initialized_ = true;
+    
     return;
   }
 
@@ -369,7 +371,7 @@ void predictSigmaPoint(MatrixXd Xsig_aug, double delta_t, int n_x, int n_aug,
     deltaTsq = delta_t * delta_t;
 
     //avoid division by zero    
-    if (fabs(yawRt) > 0.0001) {
+    if (fabs(yawRt) > 0.001) {
       Xsig_pred(0, i) = px + (v/yawRt) * (sin(yaw + yawDotDeltaT) - sinYaw);
       Xsig_pred(1, i) = py + (v/yawRt) * (-1.0 * cos(yaw + yawDotDeltaT) 
               + cosYaw);
@@ -486,15 +488,29 @@ void predictRadarMeasurement(MatrixXd Xsig_pred, int n_aug, VectorXd weights,
   z_pred.fill(0.0);
 
   for (int i=0; i < 2 * n_aug + 1; i++){
+    double px = Xsig_pred(0,i);
+    double py = Xsig_pred(1,i);
+    double v = Xsig_pred(2,i);
+    double yaw = Xsig_pred(3,i);
+    double vx = cos(yaw) * v ;
+    double vy = sin(yaw) * v ;
+    
+    // avoid division by zero
+    if (fabs(px) < 1e-3){
+        px = 1e-3;
+    }
+    
+    if (fabs(py) < 1e-3) {
+        py = 1e-3;
+    }
+                        
+    double rho = sqrt(px * px + py * py);
     //ro 
-    Zsig(0, i) = sqrt(Xsig_pred(0,i) * Xsig_pred(0,i) + Xsig_pred(1, i) * Xsig_pred(1, i));
-    
+    Zsig(0, i) = rho;
     // phi
-    Zsig(1,i) = normalizeAngle(atan2(Xsig_pred(1, i), Xsig_pred(0, i)));
-    
+    Zsig(1,i) = normalizeAngle(atan2(py, px));
     //roDot
-    Zsig(2, i) = (Xsig_pred(0,i) * cos(Xsig_pred(3,i)) * Xsig_pred(2,i) 
-            + Xsig_pred(1,i) * sin(Xsig_pred(3,i)) * Xsig_pred(2,i)) / Zsig(0, i) ;
+    Zsig(2, i) = (px * vx + py * vy) /rho; // max(rho, 1.0e-5)
 
     double wi = weights(i);
     
@@ -654,7 +670,9 @@ void updateStateForRadar(MatrixXd Xsig_pred, VectorXd x, MatrixXd P,
   //update state mean and covariance matrix  
   VectorXd z_diff = (z - z_pred);
   x = x + K * z_diff ;  
-
+  
+  //angle normalization
+  x(3) = normalizeAngle(x(3)); // yaw angle
     
   //covariance matrix
   P = P - K * S * K.transpose();
@@ -717,6 +735,9 @@ void updateStateForLidar(MatrixXd Xsig_pred, VectorXd x, MatrixXd P,
   //update state mean and covariance matrix  
   VectorXd z_diff = (z - z_pred);
   x = x + K * z_diff ;  
+
+  //angle normalization
+  x(3) = normalizeAngle(x(3)); // yaw angle
 
   //covariance matrix
   P = P - K * S * K.transpose();
