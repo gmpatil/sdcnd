@@ -38,7 +38,7 @@ int main()
   vector<VectorXd> estimations;
   vector<VectorXd> ground_truth;
 
-  tools.writeOutFile("SensorType, Px_pred, Py_pred, Vx_pred, Vy_pred, Px_meas, Py_meas, Px_gt, Py_gt, Vx_gt, Vy_gt, NIS");
+  tools.writeOutFile("SensorType,Px_pred,Py_pred,Vx_pred,Vy_pred,Px_meas,Py_meas,Px_gt,Py_gt,Vx_gt,Vy_gt,NIS");
   
   h.onMessage([&ukf,&tools,&estimations,&ground_truth](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.

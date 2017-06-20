@@ -99,6 +99,8 @@ void predictSigmaPoint(MatrixXd Xsig_aug, double delta_t, int n_x, int n_aug,
   //create matrix with predicted sigma points as columns
   MatrixXd Xsig_pred = MatrixXd::Zero(n_x, 2 * n_aug + 1);
 
+  double deltaTsq = delta_t * delta_t;
+      
   //predict sigma points
   // x => (px, py, vel, yaw angle, yaw angle change rate)
   for (int i=0; i < (2 * n_aug + 1); i++ ) {    
@@ -109,32 +111,31 @@ void predictSigmaPoint(MatrixXd Xsig_aug, double delta_t, int n_x, int n_aug,
     double yawDot = Xsig_aug(4, i);
     double va     = Xsig_aug(5, i);
     double yawDotDot = Xsig_aug(6, i);
-    
+
     double yawDotDeltaT = yawDot * delta_t;
     double cosYaw = cos(yaw);
     double sinYaw = sin(yaw);
     double deltaTsq = delta_t * delta_t;
-
-    //avoid division by zero    
-    if (fabs(yawDot) > 0.0001) {
+    
+    //avoid division by zero
+    if (fabs(yawDot) > 0.001) {
       Xsig_pred(0, i) = px + (v/yawDot) * (sin(yaw + yawDotDeltaT) - sinYaw);
-      Xsig_pred(1, i) = py + (v/yawDot) * (-1.0 * cos(yaw + yawDotDeltaT) 
-              + cosYaw);
+      Xsig_pred(1, i) = py + (v/yawDot) * (-1.0 * cos(yaw + yawDotDeltaT) + cosYaw);
     } else {
       // yawDot ~= 0.0 ;
       Xsig_pred(0, i) = px + v * cosYaw * delta_t ;
       Xsig_pred(1, i) = py + v * sinYaw * delta_t ;
     }
-
+	
     Xsig_pred(2, i) = v;
-    Xsig_pred(3, i) = normalizeAngle(yaw + yawDotDeltaT);
+    Xsig_pred(3, i) = (yaw + yawDotDeltaT);
     Xsig_pred(4, i) = yawDot ;
 
     // add noise
     Xsig_pred(0, i) = Xsig_pred(0, i) + (0.5) * deltaTsq * cosYaw * va ;
     Xsig_pred(1, i) = Xsig_pred(1, i) + (0.5) * deltaTsq * sinYaw * va ;
     Xsig_pred(2, i) = Xsig_pred(2, i) + delta_t * va ;
-    Xsig_pred(3, i) = normalizeAngle( Xsig_pred(3, i) + (0.5) * deltaTsq * yawDotDot );
+    Xsig_pred(3, i) = ( Xsig_pred(3, i) + (0.5) * deltaTsq * yawDotDot );
     Xsig_pred(4, i) = Xsig_pred(4, i) + delta_t * yawDotDot ;   
   }
   
@@ -235,18 +236,18 @@ void predictRadarMeasurement(MatrixXd Xsig_pred, int n_aug, VectorXd weights,
     double px = Xsig_pred(0,i);
     double py = Xsig_pred(1,i);
     double v = Xsig_pred(2,i);
-    double yaw = Xsig_pred(3,i);
+    double yaw = normalizeAngle(Xsig_pred(3,i));
     double vx = cos(yaw) * v ;
     double vy = sin(yaw) * v ;
     
     // avoid division by zero
-//    if (fabs(px) < 1e-3){
-//        px = 1e-3;
-//    }
-//    
-//    if (fabs(py) < 1e-3) {
-//        py = 1e-3;
-//    }
+    if (fabs(px) < 1e-3){
+        px = 1e-3;
+    }
+    
+    if (fabs(py) < 1e-3) {
+        py = 1e-3;
+    }
                         
     double rho = max(0.0001, sqrt(px * px + py * py));
     //ro 
@@ -415,7 +416,7 @@ void updateStateForRadar(MatrixXd Xsig_pred, VectorXd x, MatrixXd P,
   //update state mean and covariance matrix  
   VectorXd z_diff = (z - z_pred);
   //angle normalization
-  z_diff(1) = normalizeAngle(z_diff(1)); // yaw angle
+  z_diff(1) = normalizeAngle(z_diff(1)); // phi angle
   
   x = x + K * z_diff ;  
   
@@ -603,7 +604,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       x_(0) = meas_package.raw_measurements_(0);  //px
       x_(1) = meas_package.raw_measurements_(1);  //py
       x_(2) = 0.0;                                //vel
-      x_(3) = atan2(x_(1), x_(0));                //yaw   // yaw != phi = atan2(x_(1), x_(0));
+      x_(3) = 0.0;             //yaw   // yaw != phi = atan2(x_(1), x_(0));
       x_(4) = 0.0;
     }
 
@@ -670,7 +671,7 @@ void UKF::Prediction(double delta_t) {
   
   //cout << "ret from prediction" << endl;
 }
-
+ 
 /**
  * Updates the state and the state covariance matrix using a laser measurement.
  * @param {MeasurementPackage} meas_package
