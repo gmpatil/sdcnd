@@ -167,9 +167,9 @@ int main()
             line << gt_values(3) << del;
             
             if (meas_package.sensor_type_ == MeasurementPackage::LASER){
-              line << ukf.NIS_laser_ << del;
+              line << ukf.NIS_laser_ ;
             } else {
-              line << ukf.NIS_radar_ << del;
+              line << ukf.NIS_radar_ ;
             }
             
             tools.writeOutFile(line.str());
