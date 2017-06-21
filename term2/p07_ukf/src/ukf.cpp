@@ -117,26 +117,39 @@ void predictSigmaPoint(MatrixXd Xsig_aug, double delta_t, int n_x, int n_aug,
     double sinYaw = sin(yaw);
     double deltaTsq = delta_t * delta_t;
     
-    //avoid division by zero
+    // prediction
+    double p_px;
+    double p_py;
+    double p_v;
+    double p_yaw;
+    double p_yawDot;
+    
+    // avoid division by zero
     if (fabs(yawDot) > 0.001) {
-      Xsig_pred(0, i) = px + (v/yawDot) * (sin(yaw + yawDotDeltaT) - sinYaw);
-      Xsig_pred(1, i) = py + (v/yawDot) * (-1.0 * cos(yaw + yawDotDeltaT) + cosYaw);
+      p_px = px + (v/yawDot) * (sin(yaw + yawDotDeltaT) - sinYaw);
+      p_py = py + (v/yawDot) * (-1.0 * cos(yaw + yawDotDeltaT) + cosYaw);
     } else {
       // yawDot ~= 0.0 ;
-      Xsig_pred(0, i) = px + v * cosYaw * delta_t ;
-      Xsig_pred(1, i) = py + v * sinYaw * delta_t ;
+      p_px = px + v * cosYaw * delta_t ;
+      p_py = py + v * sinYaw * delta_t ;
     }
 	
-    Xsig_pred(2, i) = v;
-    Xsig_pred(3, i) = (yaw + yawDotDeltaT);
-    Xsig_pred(4, i) = yawDot ;
+    p_v = v;
+    p_yaw = (yaw + yawDotDeltaT);
+    p_yawDot = yawDot ;
 
     // add noise
-    Xsig_pred(0, i) = Xsig_pred(0, i) + (0.5) * deltaTsq * cosYaw * va ;
-    Xsig_pred(1, i) = Xsig_pred(1, i) + (0.5) * deltaTsq * sinYaw * va ;
-    Xsig_pred(2, i) = Xsig_pred(2, i) + delta_t * va ;
-    Xsig_pred(3, i) = ( Xsig_pred(3, i) + (0.5) * deltaTsq * yawDotDot );
-    Xsig_pred(4, i) = Xsig_pred(4, i) + delta_t * yawDotDot ;   
+    p_px = p_px + (0.5) * deltaTsq * cosYaw * va ;
+    p_py = p_py + (0.5) * deltaTsq * sinYaw * va ;
+    p_v = p_v + delta_t * va ;
+    p_yaw = p_yaw + (0.5) * deltaTsq * yawDotDot;
+    p_yawDot = p_yawDot + delta_t * yawDotDot ;   
+    
+    Xsig_pred(0, i) = p_px;
+    Xsig_pred(1, i) = p_py;
+    Xsig_pred(2, i) = p_v;
+    Xsig_pred(3, i) = p_yaw;
+    Xsig_pred(4, i) = p_yawDot;   
   }
   
   //print result
@@ -216,8 +229,7 @@ void predictStateMeanAndCovariance(MatrixXd Xsig_pred, int n_x, int n_aug,
  * 
  */
 void predictRadarMeasurement(MatrixXd Xsig_pred, int n_aug, VectorXd weights, 
-        double std_radr, double std_radphi, double std_radrd, VectorXd* z_out, 
-        MatrixXd* S_out, MatrixXd* Zsig_out) {
+        MatrixXd R, VectorXd* z_out, MatrixXd* S_out, MatrixXd* Zsig_out) {
 //  cout << "In predictRadarMeasurement" << endl;
   //create matrix for sigma points in measurement space
   MatrixXd Zsig = MatrixXd::Zero(n_z_radar, 2 * n_aug + 1);
@@ -275,13 +287,6 @@ void predictRadarMeasurement(MatrixXd Xsig_pred, int n_aug, VectorXd weights,
     
     S = S + weights(i) * z_diff * z_diff.transpose();
   }
-  
-  MatrixXd R = MatrixXd::Zero(n_z_radar, n_z_radar);  
-  R.fill(0.0);
-  // sigma px sq
-  R(0,0) = std_radr * std_radr ;
-  R(1,1) = std_radphi * std_radphi ;
-  R(2,2) = std_radrd * std_radrd ;
 
   S = S + R;  
 
@@ -309,9 +314,8 @@ void predictRadarMeasurement(MatrixXd Xsig_pred, int n_aug, VectorXd weights,
  * @param Zsig_out - matrix for predicted sigma points in radar measurement space
  * 
  */
-void predictLidarMeasurement(MatrixXd Xsig_pred, int n_aug, 
-        VectorXd weights, double std_laspx, double std_laspy, VectorXd* z_out, 
-        MatrixXd* S_out, MatrixXd* Zsig_out) {
+void predictLidarMeasurement(MatrixXd Xsig_pred, int n_aug, VectorXd weights, 
+        MatrixXd R, VectorXd* z_out, MatrixXd* S_out, MatrixXd* Zsig_out) {
 //  cout << "In predictLidarMeasurement" << endl;  
   //create matrix for sigma points in measurement space
   MatrixXd Zsig = MatrixXd::Zero(n_z_laser, 2 * n_aug + 1);
@@ -347,13 +351,6 @@ void predictLidarMeasurement(MatrixXd Xsig_pred, int n_aug,
     VectorXd z_diff = Zsig.col(i) - z_pred;
     S = S + weights(i) * z_diff * z_diff.transpose();
   }
-//  cout << "In predictLidarMeasurement after loop2" << endl; 
-  
-  MatrixXd R = MatrixXd::Zero(n_z_laser, n_z_laser);  
-  R.fill(0.0);
-  // sigma px sq
-  R(0,0) = std_laspx * std_laspx ;
-  R(1,1) = std_laspy * std_laspy ;
 
   S = S + R;  
 
@@ -551,22 +548,27 @@ UKF::UKF() {
 
   P_ = MatrixXd(5, 5);
   P_.fill(0);
-//  P_ << std_laspx_ * std_laspx_, 0, 0, 0, 0,  // 50, 0, 0, 0, 0,
-//        0, std_laspy_ * std_laspy_, 0, 0, 0, // 0, 50, 0, 0, 0, 
-//        0, 0, std_a2, 0, 0, // 0, 0, 1, 0, 0,  
-//        0, 0, 0, std_yawdd_ * std_yawdd_, 0,  //0, 0, 0, 0.5, 0, 
-//        0, 0, 0, 0, 0.5;  //0, 0, 0, 0, 0.5;
-
   P_ << 1.0, 0, 0, 0, 0,
         0, 1.0, 0, 0, 0,
         0, 0, 1.0, 0, 0, 
-        0, 0, 0, 1, 0,
-        0, 0, 0, 0, 1;    
+        0, 0, 0, 1.0, 0,
+        0, 0, 0, 0, 1.0;    
   
   n_x_ = 5; // state dimension
   n_aug_ = 7; // augmented dimension
   lambda_ = 3.0 - n_x_; // spreading parameter
-    
+  
+  R_radar_ = MatrixXd::Zero(n_z_radar, n_z_radar);  
+  R_radar_.fill(0.0);
+  R_radar_(0,0) = std_radr_ * std_radr_ ;
+  R_radar_(1,1) = std_radphi_ * std_radphi_ ;
+  R_radar_(2,2) = std_radrd_ * std_radrd_ ;
+  
+  R_lidar_ = MatrixXd::Zero(n_z_laser, n_z_laser);  
+  R_lidar_.fill(0.0);
+  R_lidar_(0,0) = std_laspx_ * std_laspx_ ;
+  R_lidar_(1,1) = std_laspy_ * std_laspy_ ;  
+  
   is_initialized_ = false;
 }
 
@@ -692,8 +694,9 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
   VectorXd x_out;
   MatrixXd P_out;
   
-  predictLidarMeasurement(Xsig_pred_, n_aug_, weights_, std_laspx_, std_laspy_, 
+  predictLidarMeasurement(Xsig_pred_, n_aug_, weights_, R_lidar_, 
           &z_predict_lidar, &S, &z_sigma_pred_lidar);
+  
   updateStateForLidar(Xsig_pred_, x_, P_, z_sigma_pred_lidar, z_predict_lidar, 
           S, z_lidar, n_x_, n_aug_, weights_, &x_out, &P_out, &NIS_laser_);
   
@@ -722,8 +725,9 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   VectorXd x_out;
   MatrixXd P_out;
   
-  predictRadarMeasurement(Xsig_pred_, n_aug_, weights_, std_radr_, std_radphi_, 
-          std_radrd_, &z_predict_radar, &S, &z_sigma_pred_radar);
+  predictRadarMeasurement(Xsig_pred_, n_aug_, weights_, R_radar_, 
+          &z_predict_radar, &S, &z_sigma_pred_radar);
+  
   updateStateForRadar(Xsig_pred_, x_, P_, z_sigma_pred_radar, z_predict_radar, 
           S, z_radar, n_x_, n_aug_, weights_, &x_out, &P_out, &NIS_radar_);
   
