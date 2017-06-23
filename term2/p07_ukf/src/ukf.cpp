@@ -603,10 +603,17 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       x_(3) = 0.0;             // yaw. phi != yaw, was not useful to set on data set 1 //phi
       x_(4) = 0.0;             // yaw rate
     } else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
-      x_(0) = meas_package.raw_measurements_(0);  //px
-      x_(1) = meas_package.raw_measurements_(1);  //py
-      x_(2) = 0.0;                                //vel
-      x_(3) = 0.0;             //yaw   // yaw != phi = atan2(x_(1), x_(0));
+      double x = meas_package.raw_measurements_[0];
+      double y = meas_package.raw_measurements_[1];
+      // safety feedback
+      if ( fabs(x) < 0.001 && fabs(y) < 0.001 ) {
+         x = 0.001;
+         y = 0.001;
+      }      
+      x_(0) = x;   //px
+      x_(1) = y;   //py
+      x_(2) = 0.0; //vel
+      x_(3) = 0.0; //yaw   // yaw != phi = atan2(x_(1), x_(0));
       x_(4) = 0.0;
     }
 
@@ -635,10 +642,11 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 	double dt = (meas_package.timestamp_ - previous_timestamp_) / 1000000.0;	
 	time_us_ = meas_package.timestamp_;
   
-//  while (dt > 0.05){
-//    Prediction(0.05);
-//    dt = dt - 0.05;
-//  }
+  double step = 0.1;
+  while (dt > 0.2){
+    Prediction(step);
+    dt -= step;
+  }
   
   Prediction(dt);
 
