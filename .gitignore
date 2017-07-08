@@ -116,4 +116,6 @@ term2/p06_ekf/nbproject/private/*
 /term2/p08_kv/nbproject/private/configurations.xml
 /term2/p08_kv/nbproject/private/launcher.properties
 /term2/p08_kv/nbproject/private/Default-build.log
-/term2/p08_kv/nbproject/private/c_standard_headers_indexer.c
+/term2/p08_kv/nbproject/private/c_standard_headers_indexer.cterm2/p08_kv/CMakeFiles/particle_filter.dir/src/
+term2/p08_kv/CMakeFiles/particle_filter.dir/src/main.cpp.o
+term2/p08_kv/CMakeFiles/particle_filter.dir/src/particle_filter.cpp.o
