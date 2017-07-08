@@ -32,6 +32,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 
   //particles.clear();
   particles.reserve(num_particles);
+  weights.reserve(num_particles);
 
   std::default_random_engine rand_engine;
   // random device
@@ -46,9 +47,11 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
   double weight = 1.0;
 
   for (int i=0; i < num_particles; i++){
-    Particle p = {i, norm_dist_x(rand_engine), norm_dist_y(rand_engine),
-    norm_dist_theta(rand_engine), weight};
+    Particle p = {i, norm_dist_x(rand_engine), norm_dist_y(rand_engine), 
+      norm_dist_theta(rand_engine), weight};
     particles.push_back(p);
+    
+    weights.push_back(weight);
   }
 
   is_initialized = true;
@@ -100,7 +103,17 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to
 	//   implement this method and use it as a helper during the updateWeights phase.
 
-
+  // Associate each observed value to nearest predicted landmark.
+  for (int i = 0; i < observations.size(); i++) {
+    double min_dist = 1e9;
+    for (int j = 0; j < predicted.size(); j++) {
+      double dst = dist(predicted[j].x, predicted[j].y, observations[i].x, observations[i].y);
+      if (dst < min_dist) {
+        min_dist = dst;
+        observations[i].id = j;
+      }
+    }
+  }
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
@@ -120,7 +133,11 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
   int num_obs = observations.size();
   int num_landmarks = map_landmarks.landmark_list.size();
-
+  
+  double std_x = std_landmark[0];
+  double std_y = std_landmark[1];
+  double bi_variate_pdf_const = (1.0/(2 * M_PI * std_x * std_y)) ;  
+  
   std::vector<LandmarkObs> obss_in_map_coord;
   obss_in_map_coord.reserve( num_obs);
 
@@ -162,21 +179,42 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     // Associate observations to in range landmarks.
     dataAssociation(landmarks_in_range, obss_in_map_coord);
 
-
+    double particle_weight = 1.0;
+    
+    // update weights
+    for (int i = 0; i < obss_in_map_coord.size(); i++) {
+      LandmarkObs closest_land_mark = landmarks_in_range[obss_in_map_coord[i].id] ;
+      double x_diff_by_std_sq = pow( (closest_land_mark.x - obss_in_map_coord[i].x)/std_x, 2) ;
+      double y_diff_by_std_sq = pow( (closest_land_mark.y - obss_in_map_coord[i].y)/std_y, 2) ;
+      double expo_part = exp(-0.5 * (x_diff_by_std_sq + y_diff_by_std_sq));
+      double obs_prob = bi_variate_pdf_const * expo_part;
+      particle_weight *= obs_prob; 
+    }
+    
+    particles[p].weight = particle_weight;
+    weights[p] = particle_weight;    
   }
 
-
-
-
-
-
+  return ;
 }
 
 void ParticleFilter::resample() {
 	// TODO: Resample particles with replacement with probability proportional to their weight.
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
-
+  
+  // discrete_distribution will return weights' index randomly but in proportion to weight. 
+	std::discrete_distribution<int> disc_dist(weights.begin(), weights.end()); 
+	std::vector<Particle> resampled_particles; 
+	std::default_random_engine rand_eng;
+	
+	for (int i = 0; i< num_particles; i++){
+		resampled_particles.push_back(std::move(particles[disc_dist(rand_eng)]));
+	}
+  
+	particles = std::move(resampled_particles);
+  
+  return ;
 }
 
 Particle ParticleFilter::SetAssociations(Particle particle, std::vector<int> associations, std::vector<double> sense_x, std::vector<double> sense_y)
