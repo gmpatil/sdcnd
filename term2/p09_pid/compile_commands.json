@@ -1,0 +1,12 @@
+[
+{
+  "directory": "/home/girish/dev/github/sdcnd/term2/p09_pid",
+  "command": "/usr/bin/g++    -I/usr/local/include  -Wall -g3 -gdwarf-2   -std=c++11 -o CMakeFiles/pid.dir/src/PID.cpp.o -c /home/girish/dev/github/sdcnd/term2/p09_pid/src/PID.cpp",
+  "file": "/home/girish/dev/github/sdcnd/term2/p09_pid/src/PID.cpp"
+},
+{
+  "directory": "/home/girish/dev/github/sdcnd/term2/p09_pid",
+  "command": "/usr/bin/g++    -I/usr/local/include  -Wall -g3 -gdwarf-2   -std=c++11 -o CMakeFiles/pid.dir/src/main.cpp.o -c /home/girish/dev/github/sdcnd/term2/p09_pid/src/main.cpp",
+  "file": "/home/girish/dev/github/sdcnd/term2/p09_pid/src/main.cpp"
+}
+]
