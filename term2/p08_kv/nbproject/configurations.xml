@@ -29,7 +29,8 @@
         <rebuildPropChanged>false</rebuildPropChanged>
       </toolsSet>
       <flagsDictionary>
-        <element flagsID="0" commonFlags="-std=c++11"/>
+        <element flagsID="0"
+                 commonFlags="-mtune=generic -march=x86-64 -std=c++11 -fstack-protector-strong"/>
       </flagsDictionary>
       <codeAssistance>
       </codeAssistance>
@@ -40,9 +41,34 @@
           <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
           <executablePath>particle_filter</executablePath>
           <ccTool>
-            <incDir>
-              <pElem>.</pElem>
-            </incDir>
+            <preprocessorList>
+              <Elem>__GNUC_STDC_INLINE__=1</Elem>
+              <Elem>__GXX_EXPERIMENTAL_CXX0X__=1</Elem>
+              <Elem>__REGISTER_PREFIX__=</Elem>
+              <Elem>__STDC_UTF_16__=1</Elem>
+              <Elem>__STDC_UTF_32__=1</Elem>
+              <Elem>__STRICT_ANSI__=1</Elem>
+              <Elem>__USER_LABEL_PREFIX__=</Elem>
+              <Elem>__cplusplus=201103L</Elem>
+              <Elem>__cpp_alias_templates=200704</Elem>
+              <Elem>__cpp_attributes=200809</Elem>
+              <Elem>__cpp_constexpr=200704</Elem>
+              <Elem>__cpp_decltype=200707</Elem>
+              <Elem>__cpp_delegating_constructors=200604</Elem>
+              <Elem>__cpp_inheriting_constructors=200802</Elem>
+              <Elem>__cpp_initializer_lists=200806</Elem>
+              <Elem>__cpp_lambdas=200907</Elem>
+              <Elem>__cpp_nsdmi=200809</Elem>
+              <Elem>__cpp_range_based_for=200907</Elem>
+              <Elem>__cpp_raw_strings=200710</Elem>
+              <Elem>__cpp_ref_qualifiers=200710</Elem>
+              <Elem>__cpp_rvalue_reference=200610</Elem>
+              <Elem>__cpp_static_assert=200410</Elem>
+              <Elem>__cpp_unicode_characters=200704</Elem>
+              <Elem>__cpp_unicode_literals=200710</Elem>
+              <Elem>__cpp_user_defined_literals=200809</Elem>
+              <Elem>__cpp_variadic_templates=200704</Elem>
+            </preprocessorList>
           </ccTool>
         </makeTool>
         <preBuild>
@@ -52,10 +78,21 @@
       </makefileType>
       <item path="src/main.cpp" ex="false" tool="1" flavor2="8">
         <ccTool flags="0">
+          <incDir>
+            <pElem>/usr/include/uWS</pElem>
+            <pElem>src</pElem>
+            <pElem>/usr/include/openssl</pElem>
+            <pElem>/usr/include/x86_64-linux-gnu/openssl</pElem>
+            <pElem>.</pElem>
+          </incDir>
         </ccTool>
       </item>
       <item path="src/particle_filter.cpp" ex="false" tool="1" flavor2="8">
         <ccTool flags="0">
+          <incDir>
+            <pElem>src</pElem>
+            <pElem>.</pElem>
+          </incDir>
         </ccTool>
       </item>
     </conf>

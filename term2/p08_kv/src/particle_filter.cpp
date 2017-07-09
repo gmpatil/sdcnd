@@ -20,6 +20,13 @@
 
 using namespace std;
 
+// New instances may start with same seeds. So define globally/statically.
+std::default_random_engine rand_engine;
+// random device
+// std::random_device rd;
+// Mersenne twister PRNG, initialized with seed from previous random device instance
+// std::mt19937 gen(rd());
+
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	// TODO: Set the number of particles. Initialize all particles to first position (based on estimates of
 	//   x, y, theta and their uncertainties from GPS) and all weights to 1.
@@ -36,12 +43,6 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
   //particles.clear();
   particles.reserve(num_particles);
   weights.reserve(num_particles);
-
-  std::default_random_engine rand_engine;
-  // random device
-  // std::random_device rd;
-  // Mersenne twister PRNG, initialized with seed from previous random device instance
-  // std::mt19937 gen(rd());
 
   std::normal_distribution<double> norm_dist_x(x, std_x);
   std::normal_distribution<double> norm_dist_y(y, std_y);
@@ -73,7 +74,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
   std::normal_distribution<double> norm_dist_y(0, std_y);
   std::normal_distribution<double> norm_dist_theta(0, std_theta);
 
-  std::default_random_engine rand_engine;
+//  std::default_random_engine rand_engine;
 
   for (int i=0; i < num_particles; i++){
     double x = particles[i].x;
