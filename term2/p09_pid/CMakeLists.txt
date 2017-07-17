@@ -1,7 +1,8 @@
-project(PID)
+project(PID C CXX)
 
 cmake_minimum_required (VERSION 3.5)
-
+# GMP Added below line
+FIND_PACKAGE ( Threads REQUIRED )
 add_definitions(-std=c++11)
 
 set(CXX_FLAGS "-Wall")
@@ -22,5 +23,5 @@ endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 
 add_executable(pid ${sources})
-
-target_link_libraries(pid z ssl uv uWS)
+# GMP Added below CMAKE_THREAD_LIBS_INIT parameter
+target_link_libraries(pid z ssl uv uWS ${CMAKE_THREAD_LIBS_INIT})

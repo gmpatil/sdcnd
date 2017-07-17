@@ -36,7 +36,7 @@
           <buildCommandWorkingDir>build</buildCommandWorkingDir>
           <buildCommand>${MAKE} -f Makefile</buildCommand>
           <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
-          <executablePath></executablePath>
+          <executablePath>build/pid</executablePath>
           <ccTool>
             <incDir>
               <pElem>/usr/local/include</pElem>
