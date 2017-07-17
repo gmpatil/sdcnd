@@ -39,20 +39,12 @@ std::string hasData(std::string s) {
 
 // Reset the simulator
 void reset_simulator(uWS::WebSocket<uWS::SERVER>& ws, double steering){
-  //std::string msg("42[\"reset\",{}]");
-  //std::string msg("42[\"reset\",{\"steering_angle\":0.0,\"throttle\":0.0}]");
-  //ws.send(msg.data(),msg.length(), uWS::OpCode::TEXT);
   json msgJson;
   msgJson["steering_angle"] = steering;
   msgJson["throttle"] = 0.0;
   auto msg = "42[\"reset\"," + msgJson.dump() + "]";
   std::cout << msg << std::endl;
   ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);  
-}
-
-void restart_simulator(uWS::WebSocket<uWS::SERVER>& ws){
-    std::string msg = "42[\"restart\",{}]";
-    ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);  
 }
 
 void run_message_handler(uWS::Hub& h){
@@ -152,8 +144,6 @@ int main() {
   std::cout<< "Main thread:" << std::this_thread::get_id()<< std::endl;
   
   h.onMessage([&pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
-//    std::cout << "In onMessage." << std::endl;
-//    std::cout << "CMD = " << cmd << std::endl;
     
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
