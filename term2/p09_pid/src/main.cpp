@@ -20,7 +20,9 @@ std::mutex mtx;
 std::condition_variable cv;
 std::string cmd = "YetToStart";
 int steps = 0;
-int max_steps = 500;
+int const MAX_STEPS = 500;
+double const SPEED_LIMIT = 20.0;
+
 PID pid;
 
 // Checks if the SocketIO event has JSON data.
@@ -58,7 +60,7 @@ void run_message_handler(uWS::Hub& h){
 double run(uWS::Hub& h, PID& pid, std::vector<double> p){
   std::cout << "Starting fresh run." << std::endl;
 
-  pid.Init(p[0], p[2], p[1], max_steps);
+  pid.Init(p[0], p[2], p[1], MAX_STEPS);
 
   cmd = "Restart" ;
 
@@ -175,7 +177,7 @@ void message_handler_twiddle(uWS::WebSocket<uWS::SERVER> ws, char *data, size_t 
             steer_value = 1.0;
           }
 
-          if (steps > max_steps) {
+          if (steps > MAX_STEPS) {
             steps = -10;
             cv.notify_all();
             printf("Notified sleeping thread.\n");
@@ -245,14 +247,14 @@ void message_handler(uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, 
 
         if (steer_value < -1.0) {
           steer_value = -1.0;
+          throttle = 0.0;
         } else if (steer_value > 1.0) {
           steer_value = 1.0;
+          throttle = 0.0;
         }
 
-        if (speed > 15.0) {
+        if (speed > SPEED_LIMIT) {
           throttle = 0.0;
-        } else {
-          throttle = 0.25;
         }
 
         json msgJson;
@@ -323,7 +325,7 @@ int main() {
     double kp = 0.8;
     double kd = 0.3;
     double ki = 0.004;
-    pid.Init(kp, ki, kd, max_steps);
+    pid.Init(kp, ki, kd, MAX_STEPS);
 
     h.onMessage(message_handler_twiddle);
 
@@ -343,11 +345,16 @@ int main() {
 //    double kp = 37.0;
 //    double kd = 450.0;
 //    double ki = 0.08;    
-    double kp = 45.0;
-    double kd = 450.0;
-    double ki = 0.08;    
+// Best so far    
+//    double kp = 45.0;
+//    double kd = 450.0;
+//    double ki = 0.08;    
 
-    pid.Init(kp, ki, kd, max_steps);
+    double kp = 45.0;
+    double kd = 950.0;
+    double ki = 0.0008;    
+    
+    pid.Init(kp, ki, kd, MAX_STEPS);
 
     h.onMessage(message_handler);
     h.run();
