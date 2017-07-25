@@ -76,7 +76,8 @@ Final hyper parameter values were as below with speed limit of 20.
 ```
 
 </br>
-[video1](./video/t2p4_15_3.mp4)
+Simulator Video: https://github.com/gmpatil/sdcnd/blob/master/term2/p09_pid/video/t2p4_15_3.mp4
+
 </br>
 
 References:
