@@ -17,10 +17,6 @@ constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
 double rad2deg(double x) { return x * 180 / pi(); }
 
-// This is the length from front to CoG that has a similar radius. 
-// Using one calculated for quizzes.
-const double Lf = 2.67;
-
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
 // else the empty string "" will be returned.
@@ -87,7 +83,7 @@ void global_to_car_coordinates(double x_car_pos, double y_car_pos, double car_ps
     double x_diff = 0.0;
     double y_diff = 0.0;
     
-    for (int i = 0; i < x_global.size(); i++) {
+    for (size_t i = 0; i < x_global.size(); i++) {
       x_diff = x_global[i] - x_car_pos;
       y_diff = y_global[i] - y_car_pos;
 
@@ -128,8 +124,8 @@ int main() {
           // convert global to car coordinates.
           Eigen::VectorXd ptsx_car_coords = Eigen::VectorXd(ptsx.size()) ;
           Eigen::VectorXd ptsy_car_coords = Eigen::VectorXd(ptsx.size()) ;
-          Eigen::VectorXd coeffs = global_to_car_coordinates(px, py, psi, ptsx, 
-                  ptsy, ptsx_car_coords, ptsy_car_coords);
+          global_to_car_coordinates(px, py, psi, ptsx, ptsy, ptsx_car_coords, 
+                  ptsy_car_coords);
           
           // Fit car x and y coordinates to 3rd order polynomial
           Eigen::VectorXd coeffs = polyfit(ptsx_car_coords, ptsx_car_coords, 3);
@@ -145,16 +141,19 @@ int main() {
           // (x,y) = origin (0,0)
           state << 0, 0, 0, v, cte, epsi;
           /*
-          * TODO: Calculate steering angle and throttle using MPC.
+          * Calculate steering angle and throttle using MPC.
           *
           * Both are in between [-1, 1].
           *
           */
-          
-          
           double steer_value;
           double throttle_value;
 
+          auto result = mpc.Solve(state, coeffs);          
+          // Steering angle from solver was reversed. 
+          steer_value = -result[0];
+          throttle_value = result[1];   
+          
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
           // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
@@ -165,6 +164,9 @@ int main() {
           vector<double> mpc_x_vals;
           vector<double> mpc_y_vals;
 
+//		 mpc_x_vals  = mpc.mpc_x;
+//		 mpc_y_vals =  mpc.mpc_y;
+     
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
 
@@ -177,7 +179,11 @@ int main() {
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
-
+          for (int i = 0;  i < ptsx_car_coords.size();  i++) {
+            next_x_vals.push_back(ptsx_car_coords[i]) ;
+            next_y_vals.push_back(ptsy_car_coords[i]) ;
+          }
+          
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
 
