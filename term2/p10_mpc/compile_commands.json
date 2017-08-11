@@ -1,0 +1,12 @@
+[
+{
+  "directory": "/home/osboxes/dev/sdcnd/mygithub/CarND-MPC-Project",
+  "command": "/usr/bin/g++    -I/usr/local/include -I/home/osboxes/dev/sdcnd/mygithub/CarND-MPC-Project/src/Eigen-3.3  -Wall -g3 -gdwarf-2   -std=c++11 -O3 -o CMakeFiles/mpc.dir/src/MPC.cpp.o -c /home/osboxes/dev/sdcnd/mygithub/CarND-MPC-Project/src/MPC.cpp",
+  "file": "/home/osboxes/dev/sdcnd/mygithub/CarND-MPC-Project/src/MPC.cpp"
+},
+{
+  "directory": "/home/osboxes/dev/sdcnd/mygithub/CarND-MPC-Project",
+  "command": "/usr/bin/g++    -I/usr/local/include -I/home/osboxes/dev/sdcnd/mygithub/CarND-MPC-Project/src/Eigen-3.3  -Wall -g3 -gdwarf-2   -std=c++11 -O3 -o CMakeFiles/mpc.dir/src/main.cpp.o -c /home/osboxes/dev/sdcnd/mygithub/CarND-MPC-Project/src/main.cpp",
+  "file": "/home/osboxes/dev/sdcnd/mygithub/CarND-MPC-Project/src/main.cpp"
+}
+]

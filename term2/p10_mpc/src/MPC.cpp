@@ -1,28 +1,40 @@
 #include "MPC.h"
 #include <cppad/cppad.hpp>
 #include <cppad/ipopt/solve.hpp>
+#include "Eigen-3.3/Eigen/Core"
 
-namespace {
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
-size_t T = 0;
+size_t N = 0;
 double dt = 0;
 
-// NOTE: DON'T CHANGE THIS IT WAS CAREFULLY CHOSEN!!!
+// This value assumes the model presented in the classroom is used.
+//
+// It was obtained by measuring the radius formed by running the vehicle in the
+// simulator around in a circle with a constant steering angle and velocity on a
+// flat terrain.
+//
+// Lf was tuned until the the radius formed by the simulating the model
+// presented in the classroom matched the previous radius.
+//
+// This is the length from front to CoG that has a similar radius.
 const double Lf = 2.67;
 
 class FG_eval {
  public:
+  // Fitted polynomial coefficients
+  Eigen::VectorXd coeffs;
+  FG_eval(Eigen::VectorXd coeffs) { this->coeffs = coeffs; }
+
   typedef CPPAD_TESTVECTOR(AD<double>) ADvector;
-  void operator()(ADvector& fg, const ADvector& x) {
+  void operator()(ADvector& fg, const ADvector& vars) {
     // TODO: implement MPC
-    // fg a vector of constraints, x is a vector of constraints.
+    // `fg` a vector of the cost constraints, `vars` is a vector of variable values (state & actuators)
     // NOTE: You'll probably go back and forth between this function and
     // the Solver function below.
   }
 };
-}
 
 //
 // MPC class definition implementation.
@@ -30,41 +42,46 @@ class FG_eval {
 MPC::MPC() {}
 MPC::~MPC() {}
 
-tuple<vector<double>, vector<double>, double> MPC::Solve(vector<double> x0) {
+vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   bool ok = true;
   size_t i;
   typedef CPPAD_TESTVECTOR(double) Dvector;
 
-  // TODO: Set the number of variables (includes both states and inputs)
-  size_t nx = 0;
+  // TODO: Set the number of model variables (includes both states and inputs).
+  // For example: If the state is a 4 element vector, the actuators is a 2
+  // element vector and there are 10 timesteps. The number of variables is:
+  //
+  // 4 * 10 + 2 * 9
+  size_t n_vars = 0;
   // TODO: Set the number of constraints
-  size_t ng = 0;
+  size_t n_constraints = 0;
 
   // Initial value of the independent variables.
-  // Should be 0 besides initial state.
-  Dvector xi(nx);
-  for (int i = 0; i < nx; i++) {
-    xi[i] = 0;
+  // SHOULD BE 0 besides initial state.
+  Dvector vars(n_vars);
+  for (int i = 0; i < n_vars; i++) {
+    vars[i] = 0;
   }
 
-  // Lower and upper limits for states, inputs
-  Dvector xl(nx), xu(nx);
+  Dvector vars_lowerbound(n_vars);
+  Dvector vars_upperbound(n_vars);
+  // TODO: Set lower and upper limits for variables.
 
   // Lower and upper limits for the constraints
   // Should be 0 besides initial state.
-  Dvector gl(ng), gu(ng);
-  for (int i = 0; i < ng; i++) {
-    gl[i] = 0;
-    gu[i] = 0;
+  Dvector constraints_lowerbound(n_constraints);
+  Dvector constraints_upperbound(n_constraints);
+  for (int i = 0; i < n_constraints; i++) {
+    constraints_lowerbound[i] = 0;
+    constraints_upperbound[i] = 0;
   }
 
-  //
-  // NOTE: Most of this stuff you don't have to worry about
-  //
-
   // object that computes objective and constraints
-  FG_eval fg_eval;
+  FG_eval fg_eval(coeffs);
 
+  //
+  // NOTE: You don't have to worry about these options
+  //
   // options for IPOPT solver
   std::string options;
   // Uncomment this if you'd like more print information
@@ -76,7 +93,7 @@ tuple<vector<double>, vector<double>, double> MPC::Solve(vector<double> x0) {
   // magnitude.
   options += "Sparse  true        forward\n";
   options += "Sparse  true        reverse\n";
-  // Currently the solver has a maximum time limit of 0.5 seconds.
+  // NOTE: Currently the solver has a maximum time limit of 0.5 seconds.
   // Change this as you see fit.
   options += "Numeric max_cpu_time          0.5\n";
 
@@ -84,19 +101,21 @@ tuple<vector<double>, vector<double>, double> MPC::Solve(vector<double> x0) {
   CppAD::ipopt::solve_result<Dvector> solution;
 
   // solve the problem
-  CppAD::ipopt::solve<Dvector, FG_eval>(options, xi, xl, xu, gl, gu, fg_eval,
-                                        solution);
-  //
+  CppAD::ipopt::solve<Dvector, FG_eval>(
+      options, vars, vars_lowerbound, vars_upperbound, constraints_lowerbound,
+      constraints_upperbound, fg_eval, solution);
+
   // Check some of the solution values
-  //
   ok &= solution.status == CppAD::ipopt::solve_result<Dvector>::success;
 
-  // TODO: return the next state, input and current cost.
-  // Note {...} is shorthand for creating a vector, so auto x1 = {1.0,2.0,3.0}
-  // creates a 3 element double vector.
-  // Fill in the appropriate values
-  auto x1 = {0.0, 0.0, 0.0};
-  auto u1 = {0.0, 0.0};
+  // Cost
   auto cost = solution.obj_value;
-  return std::make_tuple(x1, u1, cost);
+  std::cout << "Cost " << cost << std::endl;
+
+  // TODO: Return the first actuator values. The variables can be accessed with
+  // `solution.x[i]`.
+  //
+  // {...} is shorthand for creating a vector, so auto x1 = {1.0,2.0}
+  // creates a 2 element double vector.
+  return {};
 }
