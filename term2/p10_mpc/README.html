@@ -1,0 +1,146 @@
+<!doctype html><html><head><meta charset='utf-8'>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/2.4.1/github-markdown.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.11.0/styles/default.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css">
+<link rel="stylesheet" href="https://gitcdn.xyz/repo/goessner/mdmath/master/css/mdmath.css">
+</head><body class="markdown-body">
+<h1>CarND-Controls-MPC</h1>
+<p>Model Predictive Control (MPC) Project</p>
+<hr>
+<h2>Compilation and Build</h2>
+<pre class="hljs"><code><div>cd sdcnd/term2/p10_mpc/
+mkdir build
+make
+</div></code></pre>
+<h2>The Model</h2>
+<p>As the name suggests MPC - Model Predictive Control, consists of the model which predicts reasonably accuratly future states given current state and actuator controls.</p>
+<p>At high level MPC process has below main steps:</p>
+<ul>
+<li>Build Dynamic or Kinematic Model</li>
+<li>Tune the model parameters</li>
+</ul>
+<h3>Kinematic Model</h3>
+<p>As mentioned in class, Kinematic models are simplifications of dynamic models that ignore tire forces, gravity, and mass.</p>
+<p>This simplification reduces the accuracy of the models, but it also makes them more tractable.</p>
+<p>At low and moderate speeds, kinematic models often approximate the actual vehicle dynamics.</p>
+<h4>Model States and Actuators</h4>
+<p>Model has below states which tracks vehicle's position, orientation and velocity.</p>
+<pre class="hljs"><code><div>x - global X co-ordinate of the vehicle's position
+y - global Y co-ordinate of the vehicle's position
+psi - Vehicle's global orientation or yaw angle.
+v - Velocity of the vehicle.
+
+Derived state values
+cte - Cross Track Error
+epsi - Orientation Error
+
+</div></code></pre>
+<p>Actuators:</p>
+<pre class="hljs"><code><div>delta - Steering angle
+a - acceleration and break.
+</div></code></pre>
+<p>States are updated using below equations.</p>
+<pre class="hljs"><code><div>x_t+1 = x_t + v_t * cos(psi_t) * dt
+y_t+1 = y_t + v_t * sin(psi_t) * dt
+psi_t+1 = psi_t + v_t / Lf * delta * dt
+v_t+1 = v_t + a_t * dt)
+</div></code></pre>
+<section><eqn><span class="katex-display"><span class="katex"><span class="katex-mathml"><math><semantics><mrow><msub><mi>x</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>=</mo><msub><mi>x</mi><mi>t</mi></msub><mo>+</mo><msub><mi>v</mi><mi>t</mi></msub><mo>∗</mo><mi>c</mi><mi>o</mi><mi>s</mi><mo>(</mo><msub><mi>ψ</mi><mi>t</mi></msub><mo>)</mo><mo>∗</mo><mi>d</mi><mi>t</mi></mrow><annotation encoding="application/x-tex">x\_{t+1} = x\_t +  v\_t \* cos(\\psi\_t) \* dt</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.75em;"></span><span class="strut bottom" style="height:1em;vertical-align:-0.25em;"></span><span class="base displaystyle textstyle uncramped"><span class="mord"><span class="mord mathit">x</span><span class="msupsub"><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:0em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped mtight"><span class="mord scriptstyle cramped mtight"><span class="mord mathit mtight">t</span><span class="mbin mtight">+</span><span class="mord mathrm mtight">1</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span><span class="mrel">=</span><span class="mord"><span class="mord mathit">x</span><span class="msupsub"><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:0em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped mtight"><span class="mord mathit mtight">t</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span><span class="mbin">+</span><span class="mord"><span class="mord mathit" style="margin-right:0.03588em;">v</span><span class="msupsub"><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:-0.03588em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped mtight"><span class="mord mathit mtight">t</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span><span class="mbin">∗</span><span class="mord mathit">c</span><span class="mord mathit">o</span><span class="mord mathit">s</span><span class="mopen">(</span><span class="mord"><span class="mord mathit" style="margin-right:0.03588em;">ψ</span><span class="msupsub"><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:-0.03588em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped mtight"><span class="mord mathit mtight">t</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span><span class="mclose">)</span><span class="mbin">∗</span><span class="mord mathit">d</span><span class="mord mathit">t</span></span></span></span></span></eqn></section>
+<section><eqn><span class="katex-display"><span class="katex"><span class="katex-mathml"><math><semantics><mrow><msub><mi>y</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>=</mo><msub><mi>y</mi><mi>t</mi></msub><mo>+</mo><msub><mi>v</mi><mi>t</mi></msub><mo>∗</mo><mi>s</mi><mi>i</mi><mi>n</mi><mo>(</mo><msub><mi>ψ</mi><mi>t</mi></msub><mo>)</mo><mo>∗</mo><mi>d</mi><mi>t</mi></mrow><annotation encoding="application/x-tex">y\_{t+1} = y\_t +  v\_t \* sin(\\psi\_t) \* dt</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.75em;"></span><span class="strut bottom" style="height:1em;vertical-align:-0.25em;"></span><span class="base displaystyle textstyle uncramped"><span class="mord"><span class="mord mathit" style="margin-right:0.03588em;">y</span><span class="msupsub"><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:-0.03588em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped mtight"><span class="mord scriptstyle cramped mtight"><span class="mord mathit mtight">t</span><span class="mbin mtight">+</span><span class="mord mathrm mtight">1</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span><span class="mrel">=</span><span class="mord"><span class="mord mathit" style="margin-right:0.03588em;">y</span><span class="msupsub"><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:-0.03588em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped mtight"><span class="mord mathit mtight">t</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span><span class="mbin">+</span><span class="mord"><span class="mord mathit" style="margin-right:0.03588em;">v</span><span class="msupsub"><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:-0.03588em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped mtight"><span class="mord mathit mtight">t</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span><span class="mbin">∗</span><span class="mord mathit">s</span><span class="mord mathit">i</span><span class="mord mathit">n</span><span class="mopen">(</span><span class="mord"><span class="mord mathit" style="margin-right:0.03588em;">ψ</span><span class="msupsub"><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:-0.03588em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped mtight"><span class="mord mathit mtight">t</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span><span class="mclose">)</span><span class="mbin">∗</span><span class="mord mathit">d</span><span class="mord mathit">t</span></span></span></span></span></eqn></section>
+<section><eqn><span class="katex-display"><span class="katex"><span class="katex-mathml"><math><semantics><mrow><msub><mi>ψ</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>=</mo><msub><mi>ψ</mi><mi>t</mi></msub><mo>+</mo><msub><mi>v</mi><mi>t</mi></msub><mi mathvariant="normal">/</mi><msub><mi>L</mi><mi>f</mi></msub><mo>∗</mo><mi>δ</mi><mo>∗</mo><mi>d</mi><mi>t</mi></mrow><annotation encoding="application/x-tex">\\psi\_{t+1} = \\psi\_t + v\_t/L\_f \* \\delta \* dt </annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.75em;"></span><span class="strut bottom" style="height:1.036108em;vertical-align:-0.286108em;"></span><span class="base displaystyle textstyle uncramped"><span class="mord"><span class="mord mathit" style="margin-right:0.03588em;">ψ</span><span class="msupsub"><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:-0.03588em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped mtight"><span class="mord scriptstyle cramped mtight"><span class="mord mathit mtight">t</span><span class="mbin mtight">+</span><span class="mord mathrm mtight">1</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span><span class="mrel">=</span><span class="mord"><span class="mord mathit" style="margin-right:0.03588em;">ψ</span><span class="msupsub"><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:-0.03588em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped mtight"><span class="mord mathit mtight">t</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span><span class="mbin">+</span><span class="mord"><span class="mord mathit" style="margin-right:0.03588em;">v</span><span class="msupsub"><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:-0.03588em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped mtight"><span class="mord mathit mtight">t</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span><span class="mord mathrm">/</span><span class="mord"><span class="mord mathit">L</span><span class="msupsub"><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:0em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped mtight"><span class="mord mathit mtight" style="margin-right:0.10764em;">f</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span><span class="mbin">∗</span><span class="mord mathit" style="margin-right:0.03785em;">δ</span><span class="mbin">∗</span><span class="mord mathit">d</span><span class="mord mathit">t</span></span></span></span></span></eqn></section>
+<section><eqn><span class="katex-display"><span class="katex"><span class="katex-mathml"><math><semantics><mrow><msub><mi>v</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>=</mo><msub><mi>v</mi><mi>t</mi></msub><mo>+</mo><msub><mi>a</mi><mi>t</mi></msub><mo>∗</mo><mi>d</mi><mi>t</mi></mrow><annotation encoding="application/x-tex"> v\_{t+1} = v\_t + a\_t \* dt </annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.69444em;"></span><span class="strut bottom" style="height:0.902771em;vertical-align:-0.208331em;"></span><span class="base displaystyle textstyle uncramped"><span class="mord"><span class="mord mathit" style="margin-right:0.03588em;">v</span><span class="msupsub"><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:-0.03588em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped mtight"><span class="mord scriptstyle cramped mtight"><span class="mord mathit mtight">t</span><span class="mbin mtight">+</span><span class="mord mathrm mtight">1</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span><span class="mrel">=</span><span class="mord"><span class="mord mathit" style="margin-right:0.03588em;">v</span><span class="msupsub"><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:-0.03588em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped mtight"><span class="mord mathit mtight">t</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span><span class="mbin">+</span><span class="mord"><span class="mord mathit">a</span><span class="msupsub"><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:0em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped mtight"><span class="mord mathit mtight">t</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span><span class="mbin">∗</span><span class="mord mathit">d</span><span class="mord mathit">t</span></span></span></span></span></eqn></section>
+<p>Where subscript t and t+1 represent state at time t and t+1.
+<br/>
+Lf is distance between the front and the center of gravity of the vehicle.</p>
+<h3>Non-Linear Optimization and Tuning Parameters</h3>
+<p>Problem of identifying optimal actuators' value is problem of  nonlinear optimization. IPOPT (Interior Point Optimizer, pronounced ``Eye-Pea-Opt'') library solver function is used to find optiomal actuator values.</p>
+<p>Parameters like number of steps, duration of each step, cost factors for CTE, ePsi, and change in actuator values are tuned iteratively.</p>
+<pre class="hljs"><code><div>double ref_v = 40;
+
+double cost_factor_cte = 10;
+double cost_factor_epsi = 20;
+double cost_factor_steering = 20;
+double cost_factor_accel = 20;
+double cost_factor_steering_change = 20;
+double cost_factor_accel_change = 20;
+
+...
+
+    // The part of the cost based on the reference state.
+    for (size_t t = 0; t &lt; N; t++) {
+      fg[0] += cost_factor_cte * CppAD::pow(vars[cte_start + t], 2);
+      fg[0] += cost_factor_epsi * CppAD::pow(vars[epsi_start + t], 2);
+      fg[0] += CppAD::pow(vars[v_start + t] - ref_v, 2);
+    }
+
+    // Minimize the use of actuators.
+    for (size_t t = 0; t &lt; N - 1; t++) {
+      fg[0] += cost_factor_steering * CppAD::pow(vars[delta_start + t], 2);
+      fg[0] += cost_factor_accel * CppAD::pow(vars[a_start + t], 2);
+    }
+
+    // Minimize the value gap between sequential actuations.
+    for (size_t t = 0; t &lt; N - 2; t++) {
+      fg[0] += cost_factor_steering_change * CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+      fg[0] += cost_factor_accel_change * CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
+    }
+</div></code></pre>
+<h2>Timestep Length and Elapsed Duration</h2>
+<p>Frequency at which actuators are applied and number of steps used to predict future states which are used to optimize current actuator values are critical parameters tuned.</p>
+<p>Number of steps N and duration between steps dt determines time duration model repeatedly used to predict future state values.
+Too long total time duration  (N * dt) as well as too low degrades accuracy of predictions.  In my environment 1.2 seconds of total duration found to be ideal. Duration of 100 ms or above between steps (dt) worked well as latency was set at 100 ms.</p>
+<p>Kept dt above 100 ms and tuned the duration (N * dt) by altering N. Then dt is tuned further.</p>
+<pre class="hljs"><code><div>size_t N = 12;
+double dt = 0.10;
+</div></code></pre>
+<h2>Polynomial Fitting and MPC Preprocessing</h2>
+<p>Way points (reference points) returned by simulator is first converted to from global co-ordinates to vehicle co-ordinates and then used to fit to 3rd degree polynomial.</p>
+<p>Below equations were used to convert to local/vehicle co-ordinates.</p>
+<pre class="hljs"><code><div>      x_diff = x_global[i] - x_car_pos;
+      y_diff = y_global[i] - y_car_pos;
+
+      x_car[i] = x_diff * cos(car_psi) + y_diff * sin(car_psi);
+      y_car[i] = y_diff * cos(car_psi) - x_diff * sin(car_psi);
+...
+
+      // Fit car x and y coordinates way points to 3rd order polynomial
+      Eigen::VectorXd coeffs = polyfit(ptsx_car_coords, ptsy_car_coords, 3);
+      
+</div></code></pre>
+<p>Vehicle co-oridinates' origin is at the vehicle's position and direction it is moving is x-axis, left side is the y-axis.
+Converting to vehicle's co-ordinates is helpful as x, y and psi values for initial states will be zeros.
+Cross Track Error (CTE) is approximated to Y-intercept.
+Orientation error (epsi) is angle between x-axis and tangent of the polymonial at x = 0.</p>
+<pre class="hljs"><code><div>    // cte at car position which origin. y intercept at zero or 
+    // just coeffs[0]
+    double cte = coeffs[0];
+          
+    // epsi
+    double epsi = -atan(coeffs[1]);
+          
+    // initial state
+    Eigen::VectorXd state(6);          
+    // (x,y) = origin (0,0)
+    state &lt;&lt; 0, 0, 0, v, cte, epsi;
+
+</div></code></pre>
+<h3>MPI Processing/Solving Non-Linear optimization</h3>
+<p>In order to solve non-linear optimization problem, all current and future tate and actuators are treated as variables.
+Thus we get below number of variables.</p>
+<pre class="hljs"><code><div>// 6 state variables and 2 actuator variables
+size_t n_vars = N * 6 + (N - 1) * 2;
+</div></code></pre>
+<p>Lower and upper bounds and constraints for these variables are set and optimal actuator values are obtained. See 'MPC::Solve' method in MPC.cpp.</p>
+<h2>Model Predictive Control with Latency</h2>
+<p>I considered below methods to handle latency issue.</p>
+<ol>
+<li>Project state just after latency duration (100 ms) and feed the projected state to non-leanear Solver.</li>
+<li>Use the actuator values from future time step closer to latency period</li>
+<li>Calculate mean actuator values of first few future time steps such that mean time step is closer to the latency period</li>
+</ol>
+<p>I got relatively better results with the option #3.</p>
+<h2>Video</h2>
+<p>Below is link to the video demonstrating vehicle successfully driving a lap around the track.</p>
+<p><a href="https://github.com/gmpatil/sdcnd/blob/master/term2/p10_mpc/video/t2p5_1.mp4">https://github.com/gmpatil/sdcnd/blob/master/term2/p10_mpc/video/t2p5_1.mp4</a></p>
+
+</body></html>
