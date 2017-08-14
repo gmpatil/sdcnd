@@ -123,15 +123,16 @@ int main() {
 
           // convert global to car coordinates.
           Eigen::VectorXd ptsx_car_coords = Eigen::VectorXd(ptsx.size()) ;
-          Eigen::VectorXd ptsy_car_coords = Eigen::VectorXd(ptsx.size()) ;
+          Eigen::VectorXd ptsy_car_coords = Eigen::VectorXd(ptsy.size()) ;
           global_to_car_coordinates(px, py, psi, ptsx, ptsy, ptsx_car_coords, 
                   ptsy_car_coords);
           
-          // Fit car x and y coordinates to 3rd order polynomial
-          Eigen::VectorXd coeffs = polyfit(ptsx_car_coords, ptsx_car_coords, 3);
+          // Fit car x and y coordinates way points to 3rd order polynomial
+          Eigen::VectorXd coeffs = polyfit(ptsx_car_coords, ptsy_car_coords, 3);
           
-          // cte at car position which origin.
-          double cte = polyeval(coeffs, 0);
+          // cte at car position which origin. y intercept at zero or just coeffs[0]
+          //double cte = polyeval(coeffs, 0);
+          double cte = coeffs[0];
           
           // epsi
           double epsi = -atan(coeffs[1]);
@@ -150,13 +151,19 @@ int main() {
           double throttle_value;
 
           auto result = mpc.Solve(state, coeffs);          
+          
           // Steering angle from solver was reversed. 
-          steer_value = -result[0];
+          // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
+          // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].          
+          steer_value = (-result[0]/deg2rad(25));
+          if (abs(steer_value) > 1.0) {
+            steer_value = (steer_value/abs(steer_value)) ;
+          }
+          
           throttle_value = result[1];   
           
           json msgJson;
-          // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
-          // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
+
           msgJson["steering_angle"] = steer_value;
           msgJson["throttle"] = throttle_value;
 
@@ -164,12 +171,11 @@ int main() {
           vector<double> mpc_x_vals;
           vector<double> mpc_y_vals;
 
-//		 mpc_x_vals  = mpc.mpc_x;
-//		 mpc_y_vals =  mpc.mpc_y;
-     
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
-
+          mpc_x_vals  = mpc.projected_x;
+          mpc_y_vals =  mpc.projected_y;
+          
           msgJson["mpc_x"] = mpc_x_vals;
           msgJson["mpc_y"] = mpc_y_vals;
 
@@ -186,7 +192,6 @@ int main() {
           
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
-
 
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
           std::cout << msg << std::endl;
