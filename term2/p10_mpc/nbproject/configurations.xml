@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configurationDescriptor version="100">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
-    <df root="." name="0">
-      <df name="src">
-        <in>MPC.cpp</in>
-        <in>main.cpp</in>
-      </df>
+    <df root="src" name="1">
+      <in>MPC.cpp</in>
+      <in>main.cpp</in>
     </df>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -18,7 +16,7 @@
   </logicalFolder>
   <sourceFolderFilter>^(nbproject)$</sourceFolderFilter>
   <sourceRootList>
-    <Elem>.</Elem>
+    <Elem>src</Elem>
   </sourceRootList>
   <projectmakefile>Makefile</projectmakefile>
   <confs>
@@ -35,7 +33,7 @@
       </codeAssistance>
       <makefileType>
         <makeTool>
-          <buildCommandWorkingDir>.</buildCommandWorkingDir>
+          <buildCommandWorkingDir>build</buildCommandWorkingDir>
           <buildCommand>${MAKE} -f Makefile</buildCommand>
           <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
           <executablePath></executablePath>
@@ -43,7 +41,7 @@
             <incDir>
               <pElem>/usr/local/include</pElem>
               <pElem>src/Eigen-3.3</pElem>
-              <pElem>.</pElem>
+              <pElem>build</pElem>
             </incDir>
           </ccTool>
         </makeTool>
