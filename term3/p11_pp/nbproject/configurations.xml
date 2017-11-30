@@ -38,7 +38,7 @@
           <executablePath></executablePath>
           <ccTool>
             <incDir>
-              <pElem>.</pElem>
+              <pElem>build</pElem>
             </incDir>
           </ccTool>
         </makeTool>
