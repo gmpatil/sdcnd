@@ -138,4 +138,6 @@ build
 /term2/p10_mpc/nbproject/private/Default.properties
 /term2/p10_mpc/nbproject/private/c_standard_headers_indexer.c
 /term2/p10_mpc/nbproject/private/private.xml
-/term2/p10_mpc/nbproject/private/cpp_standard_headers_indexer.cpp
+/term2/p10_mpc/nbproject/private/cpp_standard_headers_indexer.cppbuild/
+../../term2/p10_mpc/nbproject/private/
+term2/p10_mpc/nbproject/private/
