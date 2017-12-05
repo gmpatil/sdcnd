@@ -352,6 +352,11 @@ int main() {
                   // lower ref vel so that we do not crash
                   //ref_vel = 29.5; // mph
                   too_close = true;
+                  
+                  if (lane > 0){
+                    lane = 0;
+                  }
+                  
                 }
               }
             }
