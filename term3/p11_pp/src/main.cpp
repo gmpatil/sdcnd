@@ -328,7 +328,7 @@ int main() {
             //
             
             int prev_size = previous_path_x.size();
-            printf("prev_sz %d\n", prev_size);
+            //printf("prev_sz %d\n", prev_size);
             
             if (prev_size > 0) {
               car_s = end_path_s;
@@ -441,7 +441,7 @@ int main() {
 
             double N = (target_dist/(0.02*ref_vel/2.24));  //mts per sec
             double delta = (target_x)/N ;
-            printf("N =  %f\nDelta = %f\n", N, delta);
+            //printf("N =  %f\nDelta = %f\n", N, delta);
             
             // fill up the rest of the path
             for (int i=1; i <= 50 - previous_path_x.size(); i++) {
@@ -462,7 +462,7 @@ int main() {
               next_x_vals.push_back(x_point);
               next_y_vals.push_back(y_point);
               
-              printf("xref %f, yref %f x_pt %f  y_pt %f\n", x_ref, y_ref, x_point, y_point);
+              //printf("xref %f, yref %f x_pt %f  y_pt %f\n", x_ref, y_ref, x_point, y_point);
             } 
             
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
