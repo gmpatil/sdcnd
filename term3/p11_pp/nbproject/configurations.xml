@@ -2,7 +2,15 @@
 <configurationDescriptor version="100">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
     <df root="src" name="0">
+      <df name="include">
+        <in>cost.h</in>
+        <in>road.h</in>
+        <in>vehicle.h</in>
+      </df>
+      <in>cost.cpp</in>
       <in>main.cpp</in>
+      <in>road.cpp</in>
+      <in>vehicle.cpp</in>
     </df>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -47,9 +55,21 @@
           <preBuildCommand>${CMAKE} -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=${IDE_CC} -DCMAKE_CXX_COMPILER=${IDE_CXX} -DCMAKE_C_FLAGS_DEBUG="-g3 -gdwarf-2" -DCMAKE_CXX_FLAGS_DEBUG="-g3 -gdwarf-2" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..</preBuildCommand>
         </preBuild>
       </makefileType>
+      <item path="src/cost.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="src/include/cost.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/include/road.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/include/vehicle.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="src/main.cpp" ex="false" tool="1" flavor2="8">
         <ccTool flags="0">
         </ccTool>
+      </item>
+      <item path="src/road.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="src/vehicle.cpp" ex="false" tool="1" flavor2="0">
       </item>
     </conf>
   </confs>
