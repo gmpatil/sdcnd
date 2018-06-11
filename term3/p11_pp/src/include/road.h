@@ -19,42 +19,36 @@ using json = nlohmann::json;
 
 class Road
 {
-public:
-  const int ego_key = -1;
-  const int num_lanes = 3;
-  const int speed_limit = 49.5;
-  const int MAX_ACCEL = 0.224; // 5m/sec2
+  public:
+    
+    // Constructor and destructor
+    Road(vector<double> wp_x, vector<double> wp_y, vector<double> wp_s, vector<double> wp_dx, vector<double> wp_dy);
+    virtual ~Road();
 
-  int vehicles_added = 0;
-
-  map<int, Vehicle> vehicles;
-
-  Road(vector<double> wp_x, vector<double> wp_y, vector<double> wp_s, vector<double> wp_dx, vector<double> wp_dy);
-  virtual ~Road();
-
-  void update(const json &jsn);
-  Vehicle get_ego();
-  void populate_traffic();
-  void advance();
-  void add_ego(int lane_num, int s, vector<int> config_data);
-  void cull();
+    void update(const json &jsn);
+    
+    //TODO refactor to remove
+    vector<double> next_x_vals;
+    vector<double> next_y_vals;
   
-  //TODO remove
-  vector<double> next_x_vals;
-  vector<double> next_y_vals;
-  
-private:
-  vector<double> _wp_x;
-  vector<double> _wp_y;
-  vector<double> _wp_s;
-  vector<double> _wp_dx;
-  vector<double> _wp_dy;  
+  private:
+    const int num_lanes = 3;
+    const double SPEED_LIMIT = 49.5;
+    const double MAX_ACCEL = 0.224; // 5m/sec2
 
-  //TODO remove
-  int lane = 1;
-  //int lane_src = 1;
-  double ref_vel = 0.0; // 49.50;
+    // Map waypoints
+    vector<double> _wp_x;
+    vector<double> _wp_y;
+    vector<double> _wp_s;
+    vector<double> _wp_dx;
+    vector<double> _wp_dy;  
 
+    Vehicle ego;
+    map<int, Vehicle> vehicles;
+
+    //TODO remove
+    int lane = 1;
+    double ref_vel = 0.0; // 49.50;
 };
 
 #endif // ROAD_H

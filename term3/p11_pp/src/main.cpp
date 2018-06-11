@@ -79,7 +79,7 @@ int main() {
 
   Road road = Road(map_waypoints_x, map_waypoints_y, map_waypoints_s, 
           map_waypoints_dx, map_waypoints_dy);
-  
+    
   h.onMessage([&map_waypoints_x, &map_waypoints_y, &map_waypoints_s,
           &map_waypoints_dx, &map_waypoints_dy, &ref_vel, &lane, &road](
           uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
@@ -104,7 +104,7 @@ int main() {
 
         if (event == "telemetry") {
           // j[1] is the data JSON object
-          road.update(static_cast<nlohmann::json>(jsn) );
+          road.update(jsn);
 
           // Define a path made up of (x,y) points that the car will 
           // visit sequentially every .02 seconds

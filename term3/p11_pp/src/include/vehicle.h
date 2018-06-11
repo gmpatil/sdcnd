@@ -17,47 +17,32 @@ public:
       {"LCR", -1},
       {"PLCR", -1}};
 
-  struct collider
-  {
-    bool collision; // is there a collision?
-    int time;       // time collision happens
-  };
+  double v;
+  double s;
 
   int L = 1;
-
-  int preferred_buffer = 6; // impacts "keep lane" behavior.
-
   int lane;
-
-  int s;
-
-  float v;
-
   float a;
-
   float target_speed;
-
   int lanes_available;
-
   float max_acceleration;
-
   int goal_lane;
-
   int goal_s;
-
+  
   string state;
 
-  /**
-   * Constructor
-   */
-  Vehicle();
-  Vehicle(int lane, float s, float v, float a, string state = "CS");
 
-  /**
-   * Destructor
-   */
+  // Constructors
+  Vehicle();
+  Vehicle(double x1, double y1, double vx1, double vy1, double s1, 
+            double d1, double yaw1, double yaw_rel_lane1);
+  
+  //Destructor
   virtual ~Vehicle();
 
+  void update(double x1, double y1, double vx1, double vy1, double s1, 
+            double d1, double yaw1, double yaw_rel_lane1);
+  
   vector<Vehicle> choose_next_state(map<int, vector<Vehicle>> predictions);
 
   vector<string> successor_states();
@@ -85,6 +70,18 @@ public:
   void realize_next_state(vector<Vehicle> trajectory);
 
   void configure(vector<int> road_data);
+
+  private: 
+    double x;
+    double y;
+    double vx;
+    double vy;
+    double d;  
+    double yaw; 
+    double yaw_rel_lane;
+    double v_s;
+    double v_d;
+    
 };
 
 #endif
