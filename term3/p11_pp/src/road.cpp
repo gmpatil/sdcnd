@@ -186,6 +186,7 @@ void Road::update(const json &jsn) {
   // Previous path data given to the Planner
   auto previous_path_x = jsn[1]["previous_path_x"];
   auto previous_path_y = jsn[1]["previous_path_y"];
+  
   // Previous path's end s and d values 
   double end_path_s = jsn[1]["end_path_s"];
   double end_path_d = jsn[1]["end_path_d"];
@@ -204,8 +205,6 @@ void Road::update(const json &jsn) {
   //
 
   int prev_size = previous_path_x.size();
-  //printf("prev_sz %d\n", prev_size);
-
   if (prev_size > 0) {
     car_s = end_path_s;
   }
@@ -257,9 +256,9 @@ void Road::update(const json &jsn) {
     double prev_car_y = car_y - sin(car_yaw);
 
     ptsx.push_back(prev_car_x);
-    ptsx.push_back(car_x_calc);
-
     ptsy.push_back(prev_car_y);
+    
+    ptsx.push_back(car_x_calc);
     ptsy.push_back(car_y_calc);
   } else {
     car_x_calc = previous_path_x[prev_size - 1];
@@ -304,7 +303,7 @@ void Road::update(const json &jsn) {
 
   // create spline, reference to the Car co-ordinate
   tk::spline spln;
-  spln.set_points(ptsx, ptsy);
+  spln.set_points(ptsx, ptsy); //ptsx and ptsy now have co-ordinate relative to the car.
 
   //previous path points
   for (int i = 0; i < previous_path_x.size(); i++) {
@@ -315,33 +314,26 @@ void Road::update(const json &jsn) {
   double target_x = 30.0;
   double target_y = spln(target_x);
   double target_dist = sqrt((target_x * target_x) + (target_y * target_y));
-  double x_add_on = 0;
 
   double N = (target_dist / (0.02 * ref_vel / 2.24)); //mts per sec
   double delta = (target_x) / N;
   //printf("N =  %f\nDelta = %f\n", N, delta);
 
+  double x_ref = 0;
+  double y_ref = 0;
   // fill up the rest of the path
   for (int i = 1; i <= 50 - previous_path_x.size(); i++) {
-    x_add_on += delta;
-    //            double x_point = x_add_on;
-    //            double y_point = s(x_point);
-
-    double x_ref = x_add_on; // x_point;
-    double y_ref = spln(x_add_on); //y_point;
+    x_ref += delta;
+    y_ref = spln(x_ref); //y_point;
 
     // rotate back to normal/global co-ordinates 
     double x_point = (x_ref * cos(ref_yaw) - y_ref * sin(ref_yaw));
     double y_point = (x_ref * sin(ref_yaw) + y_ref * cos(ref_yaw));
-
     x_point += car_x_calc;
     y_point += car_y_calc;
 
     next_x_vals.push_back(x_point);
     next_y_vals.push_back(y_point);
-
-    //printf("xref %f, yref %f x_pt %f  y_pt %f\n", x_ref, y_ref, 
-    // x_point, y_point);
   }  
 }
 

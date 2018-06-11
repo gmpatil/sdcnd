@@ -106,7 +106,7 @@ int main() {
           // j[1] is the data JSON object
           road.update(static_cast<nlohmann::json>(jsn) );
 
-          // TODO: define a path made up of (x,y) points that the car will 
+          // Define a path made up of (x,y) points that the car will 
           // visit sequentially every .02 seconds
           nlohmann::json msgJson;
           msgJson["next_x"] = road.next_x_vals;
