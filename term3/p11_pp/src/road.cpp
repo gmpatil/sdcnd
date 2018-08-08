@@ -25,25 +25,25 @@ Road::Road(vector<double> wp_x, vector<double> wp_y, vector<double> wp_s,
 Road::~Road() {
 }
 
-void addOtherVehicles(map<int, Vehicle> vehicles, const json sensor_fusion, 
-        double rd_orientation) {
-  
-  for (unsigned int i = 0; i < sensor_fusion.size(); i++) {
-    int id = sensor_fusion[i][0];
-    double x = sensor_fusion[i][1];
-    double y = sensor_fusion[i][2];
-    double vx = sensor_fusion[i][3];
-    double vy = sensor_fusion[i][4];
-    double s = sensor_fusion[i][5];
-    double d = sensor_fusion[i][6];
-    double yaw = atan2(vy, vx);    
-    double yaw_rel_lane = yaw - rd_orientation;
-    
-    Vehicle newV(x, y, vx, vy, s, d, yaw, yaw_rel_lane);
-    
-    vehicles.insert(std::pair<int,Vehicle>(id, newV));
-  }
-}
+//void addOtherVehicles(map<int, Vehicle> vehicles, const json sensor_fusion, 
+//        double rd_orientation) {
+//  
+//  for (unsigned int i = 0; i < sensor_fusion.size(); i++) {
+//    int id = sensor_fusion[i][0];
+//    double x = sensor_fusion[i][1];
+//    double y = sensor_fusion[i][2];
+//    double vx = sensor_fusion[i][3];
+//    double vy = sensor_fusion[i][4];
+//    double s = sensor_fusion[i][5];
+//    double d = sensor_fusion[i][6];
+//    double yaw = atan2(vy, vx);    
+//    double yaw_rel_lane = yaw - rd_orientation;
+//    
+//    Vehicle newV(x, y, vx, vy, s, d, yaw, yaw_rel_lane);
+//    
+//    vehicles.insert(std::pair<int,Vehicle>(id, newV));
+//  }
+//}
 
 void updateOtherVehicles(map<int, Vehicle> vehicles, const json sensor_fusion, 
         double rd_orientation) {
@@ -62,7 +62,7 @@ void updateOtherVehicles(map<int, Vehicle> vehicles, const json sensor_fusion,
     //Vehicle newV(x, y, vx, vy, s, d, yaw, yaw_rel_lane);
     std::map<int,Vehicle>::iterator it = vehicles.find(id);
     if (it == vehicles.end()) {
-      Vehicle newV(x, y, vx, vy, s, d, yaw, yaw_rel_lane);
+      Vehicle newV(id, x, y, vx, vy, s, d, yaw, yaw_rel_lane);
       vehicles.insert(std::pair<int,Vehicle>(id, newV));      
       
       printf("Not found %d\n", id);      
@@ -74,9 +74,68 @@ void updateOtherVehicles(map<int, Vehicle> vehicles, const json sensor_fusion,
   }
 }
 
+void Road::choose_ego_next_state(double ego_s, double ego_d, int frame, 
+        map<int, Vehicle> vehicles, Vehicle ego) {
+    
+//    vector<string> states = successor_states();
+//    float cost;
+//    vector<float> costs;
+//    vector<string> final_states;
+//    vector<vector<Vehicle>> final_trajectories;
+//
+//    for (vector<string>::iterator it = states.begin(); it != states.end(); ++it) {
+//        vector<Vehicle> trajectory = generate_trajectory(*it, predictions);
+//        if (trajectory.size() != 0) {
+//            cost = calculate_cost(*this, predictions, trajectory);
+//            costs.push_back(cost);
+//            final_trajectories.push_back(trajectory);
+//        }
+//    }
+//
+//    vector<float>::iterator best_cost = min_element(begin(costs), end(costs));
+//    int best_idx = distance(begin(costs), best_cost);
+//    return final_trajectories[best_idx];
+//    
+    
+    map<int, Vehicle>::iterator it = this->vehicles.begin();
+    vector<float> vd;
+    vector<double> vs;
+    
+    while(it != this->vehicles.end())  {
+      //check_car_s += ((double) prev_size * 0.02 * check_speed);
+      
+    }
+    
+    return ;
+}
+
+
 
 void Road::update(const json &jsn) {
   // Main car's localization Data
+  
+  //json[1] structure.
+  //["x"] The car's x position in map coordinates
+  //["y"] The car's y position in map coordinates
+  //["s"] The car's s position in frenet coordinates
+  //["d"] The car's d position in frenet coordinates
+  //["yaw"] The car's yaw angle in the map
+  //["speed"] The car's speed in MPH
+  // Note: Return the previous list but with processed points removed, can be a 
+  // nice tool to show how far along the path has processed since last time.
+  //["previous_path_x"] The previous list of x points previously given to the simulator
+  //["previous_path_y"] The previous list of y points previously given to the simulator
+  //Previous path's end s and d values
+  //["end_path_s"] The previous list's last point's frenet s value
+  //["end_path_d"] The previous list's last point's frenet d value
+
+  //Sensor Fusion Data, a list of all other car's attributes on the same side of the road. (No Noise)
+  //["sensor_fusion"] A 2d vector of cars and then that car's
+  // [car's unique ID, car's x position in map coordinates, car's y position in map coordinates, 
+  //  car's x velocity in m/s, car's y velocity in m/s, car's s position in frenet coordinates, 
+  //  car's d position in frenet coordinates.  
+
+  
   double car_x = jsn[1]["x"];
   double car_y = jsn[1]["y"];
   double car_s = jsn[1]["s"];
@@ -93,15 +152,19 @@ void Road::update(const json &jsn) {
   double end_path_d = jsn[1]["end_path_d"];
 
   // Sensor Fusion Data, a list of all other cars on the same side of the road.
+  // [ id, x, y, vx, vy, s, d]
   auto sensor_fusion = jsn[1]["sensor_fusion"];
 
   double rd_orientation = road_orientation(car_s, _wp_s, _wp_x, _wp_y);
   
-  if (this->vehicles.size() <= 1){
-    addOtherVehicles(this->vehicles, sensor_fusion, rd_orientation);
-  } else {
+  this->ego.update(car_x, car_y, 0, 0, car_s, car_d, car_yaw, 0);
+  
+  // Update other vehicle data
+//  if (this->vehicles.size() <= 0){
+//    addOtherVehicles(this->vehicles, sensor_fusion, rd_orientation);
+//  } else {
     updateOtherVehicles(this->vehicles, sensor_fusion, rd_orientation);
-  }
+//  }
   
   //Initialize
   vector<double> next_x_vals_n;
@@ -116,12 +179,14 @@ void Road::update(const json &jsn) {
   int prev_size = previous_path_x.size();
   if (prev_size > 0) {
     car_s = end_path_s;
+    car_d = end_path_d;
   }
 
   bool too_close = false;
 
   // find ref vel
   for (int i = 0; i < sensor_fusion.size(); i++) {
+    // left most lane, when lane == 0.
     // car in our lane
     float d = sensor_fusion[i][6]; // ith car, 7th param(6) = d
     if (d < (2 + 4 * this->lane + 2) && d > (2 + 4 * lane - 2)) {

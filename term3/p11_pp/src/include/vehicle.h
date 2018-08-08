@@ -5,72 +5,76 @@
 #include <vector>
 #include <map>
 #include <string>
+#include "trajectory_action.h"
 
 using namespace std;
 
-class Vehicle
-{
-public:
-  map<string, int> lane_direction = {
-      {"PLCL", 1},
-      {"LCL", 1},
-      {"LCR", -1},
-      {"PLCR", -1}};
+class Vehicle {  
+  public:
+    map<string, int> lane_direction = {
+        {"PLCL", 1},
+        {"LCL", 1},
+        {"LCR", -1},
+        {"PLCR", -1}};
 
-  double v;
-  double s;
+    double v;
+    double s;
 
-  int L = 1;
-  int lane;
-  float a;
-  float target_speed;
-  int lanes_available;
-  float max_acceleration;
-  int goal_lane;
-  int goal_s;
-  
-  string state;
+    int id;
+    int lane;
+    float a;
+    float target_speed;
+    int lanes_available;
+    float max_acceleration;
+    int goal_lane;
+    int goal_s;
 
+    string state;
 
-  // Constructors
-  Vehicle();
-  Vehicle(double x1, double y1, double vx1, double vy1, double s1, 
-            double d1, double yaw1, double yaw_rel_lane1);
-  
-  //Destructor
-  virtual ~Vehicle();
+    int preferred_buffer = 6; // impacts "keep lane" behavior.
 
-  void update(double x1, double y1, double vx1, double vy1, double s1, 
-            double d1, double yaw1, double yaw_rel_lane1);
-  
-  vector<Vehicle> choose_next_state(map<int, vector<Vehicle>> predictions);
+    // Constructors
+    Vehicle();
+    Vehicle(double x1, double y1, double vx1, double vy1, double s1, double d1, double yaw1, double yaw_rel_lane1);
 
-  vector<string> successor_states();
+    Vehicle(int id, double x1, double y1, double vx1, double vy1, double s1, double d1, double yaw1, double yaw_rel_lane1);
 
-  vector<Vehicle> generate_trajectory(string state, map<int, vector<Vehicle>> predictions);
+    //Destructor
+    virtual ~Vehicle();
 
-  vector<float> get_kinematics(map<int, vector<Vehicle>> predictions, int lane);
+    void update(double x1, double y1, double vx1, double vy1, double s1, 
+              double d1, double yaw1, double yaw_rel_lane1);
 
-  vector<Vehicle> constant_speed_trajectory();
+    vector<TrajectoryAction> choose_next_state(map<int, vector<TrajectoryAction>> predictions); 
 
-  vector<Vehicle> keep_lane_trajectory(map<int, vector<Vehicle>> predictions);
+    vector<string> successor_states();
 
-  vector<Vehicle> lane_change_trajectory(string state, map<int, vector<Vehicle>> predictions);
+    vector<TrajectoryAction> generate_trajectory(string state, map<int, vector<TrajectoryAction>> predictions);
 
-  vector<Vehicle> prep_lane_change_trajectory(string state, map<int, vector<Vehicle>> predictions);
+    vector<float> get_kinematics(map<int, vector<TrajectoryAction>> predictions, int lane);
 
-  void update_s(double dt);
+    vector<TrajectoryAction> constant_speed_trajectory();
 
-  bool get_vehicle_behind(map<int, vector<Vehicle>> predictions, int lane, Vehicle &rVehicle);
+    vector<TrajectoryAction> keep_lane_trajectory(map<int, vector<TrajectoryAction>> predictions);
 
-  bool get_vehicle_ahead(map<int, vector<Vehicle>> predictions, int lane, Vehicle &rVehicle);
+    vector<TrajectoryAction> lane_change_trajectory(string state, map<int, vector<TrajectoryAction>> predictions);
 
-  vector<Vehicle> generate_predictions(int horizon = 2);
+    vector<TrajectoryAction> prep_lane_change_trajectory(string state, map<int, vector<TrajectoryAction>> predictions);
 
-  void realize_next_state(vector<Vehicle> trajectory);
+    bool get_vehicle_behind(map<int, vector<TrajectoryAction>> predictions, int lane, Vehicle &rVehicle);
 
-  void configure(vector<int> road_data);
+    bool get_vehicle_ahead(map<int, vector<TrajectoryAction>> predictions, int lane, Vehicle &rVehicle);
 
+    vector<TrajectoryAction> generate_predictions(int horizon = 2);
+    
+    float position_at(int t);
+    
+    void realize_next_state(vector<TrajectoryAction> trajectory);
+
+    void configure(vector<int> road_data);
+
+    double get_s(int frame);
+    
   private: 
     double x;
     double y;
@@ -80,8 +84,7 @@ public:
     double yaw; 
     double yaw_rel_lane;
     double v_s;
-    double v_d;
-    
+    double v_d;    
 };
 
 #endif

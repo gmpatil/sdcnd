@@ -27,10 +27,12 @@ class Road
 
     void update(const json &jsn);
     
+    void choose_ego_next_state(double ego_s, double ego_d, int frame, map<int, Vehicle> vehicles, Vehicle ego);    
+
     //TODO refactor to remove
     vector<double> next_x_vals;
     vector<double> next_y_vals;
-  
+    
   private:
     const int num_lanes = 3;
     const double SPEED_LIMIT = 49.5;

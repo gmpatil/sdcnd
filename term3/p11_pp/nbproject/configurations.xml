@@ -5,12 +5,14 @@
       <df name="include">
         <in>cost.h</in>
         <in>road.h</in>
+        <in>trajectory_action.h</in>
         <in>utils.h</in>
         <in>vehicle.h</in>
       </df>
       <in>cost.cpp</in>
       <in>main.cpp</in>
       <in>road.cpp</in>
+      <in>trajectory_action.cpp</in>
       <in>utils.cpp</in>
       <in>vehicle.cpp</in>
     </df>
@@ -63,6 +65,8 @@
       </item>
       <item path="src/include/road.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="src/include/trajectory_action.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="src/include/utils.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="src/include/vehicle.h" ex="false" tool="3" flavor2="0">
@@ -72,6 +76,8 @@
         </ccTool>
       </item>
       <item path="src/road.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="src/trajectory_action.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="src/utils.cpp" ex="false" tool="1" flavor2="0">
       </item>

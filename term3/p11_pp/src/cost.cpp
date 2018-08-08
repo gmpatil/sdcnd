@@ -8,7 +8,7 @@
 const float REACH_GOAL = pow(10, 6);
 const float EFFICIENCY = pow(10, 5);
 
-float goal_distance_cost(const Vehicle & vehicle, const vector<Vehicle> & trajectory, const map<int, vector<Vehicle>> &predictions, map<string, float> & data) {
+float goal_distance_cost(const Vehicle & vehicle, const vector<TrajectoryAction> & trajectory, const map<int, vector<TrajectoryAction>> &predictions, map<string, float> & data) {
   /*
   Cost increases based on distance of intended lane (for planning a lane change) and final lane of trajectory.
   Cost of being out of goal lane also becomes larger as vehicle approaches goal distance.
@@ -23,7 +23,7 @@ float goal_distance_cost(const Vehicle & vehicle, const vector<Vehicle> & trajec
   return cost;
 }
 
-float inefficiency_cost(const Vehicle & vehicle, const vector<Vehicle> & trajectory, const map<int, vector<Vehicle>> &predictions, map<string, float> & data) {
+float inefficiency_cost(const Vehicle & vehicle, const vector<TrajectoryAction> & trajectory, const map<int, vector<TrajectoryAction>> &predictions, map<string, float> & data) {
   /*
   Cost becomes higher for trajectories with intended lane and final lane that have traffic slower than vehicle's target speed. 
    */
@@ -43,14 +43,14 @@ float inefficiency_cost(const Vehicle & vehicle, const vector<Vehicle> & traject
   return cost;
 }
 
-float lane_speed(const map<int, vector<Vehicle>> &predictions, int lane) {
+float lane_speed(const map<int, vector<TrajectoryAction>> &predictions, int lane) {
   /*
   All non ego vehicles in a lane have the same speed, so to get the speed limit for a lane,
   we can just find one vehicle in that lane.
    */
-  for (map<int, vector < Vehicle>>::const_iterator it = predictions.begin(); it != predictions.end(); ++it) {
+  for (map<int, vector < TrajectoryAction>>::const_iterator it = predictions.begin(); it != predictions.end(); ++it) {
     int key = it->first;
-    Vehicle vehicle = it->second[0];
+    TrajectoryAction vehicle = it->second[0];
     if (vehicle.lane == lane && key != -1) {
       return vehicle.v;
     }
@@ -59,7 +59,7 @@ float lane_speed(const map<int, vector<Vehicle>> &predictions, int lane) {
   return -1.0;
 }
 
-float calculate_cost(const Vehicle & vehicle, const map<int, vector<Vehicle>> &predictions, const vector<Vehicle> & trajectory) {
+float calculate_cost(const Vehicle & vehicle, const map<int, vector<TrajectoryAction>> &predictions, const vector<TrajectoryAction> & trajectory) {
   /*
   Sum weighted cost functions to get total cost for trajectory.
    */
@@ -67,7 +67,7 @@ float calculate_cost(const Vehicle & vehicle, const map<int, vector<Vehicle>> &p
   float cost = 0.0;
 
   //Add additional cost functions here.
-  vector < function<float(const Vehicle &, const vector<Vehicle> &, const map<int, vector < Vehicle>> &, map<string, float> &) >> cf_list = {goal_distance_cost, inefficiency_cost};
+  vector < function<float(const Vehicle &, const vector<TrajectoryAction> &, const map<int, vector < TrajectoryAction>> &, map<string, float> &) >> cf_list = {goal_distance_cost, inefficiency_cost};
   vector<float> weight_list = {REACH_GOAL, EFFICIENCY};
 
   for (int i = 0; i < cf_list.size(); i++) {
@@ -79,7 +79,7 @@ float calculate_cost(const Vehicle & vehicle, const map<int, vector<Vehicle>> &p
 
 }
 
-map<string, float> get_helper_data(const Vehicle & vehicle, const vector<Vehicle> & trajectory, const map<int, vector<Vehicle>> &predictions) {
+map<string, float> get_helper_data(const Vehicle & vehicle, const vector<TrajectoryAction> & trajectory, const map<int, vector<TrajectoryAction>> &predictions) {
   /*
   Generate helper data to use in cost functions:
   indended_lane: the current lane +/- 1 if vehicle is planning or executing a lane change.
@@ -90,7 +90,7 @@ map<string, float> get_helper_data(const Vehicle & vehicle, const vector<Vehicle
   a lane change in the cost functions.
    */
   map<string, float> trajectory_data;
-  Vehicle trajectory_last = trajectory[1];
+  TrajectoryAction trajectory_last = trajectory[1];
   float intended_lane;
 
   if (trajectory_last.state.compare("PLCL") == 0) {
