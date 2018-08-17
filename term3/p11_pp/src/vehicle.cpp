@@ -259,7 +259,10 @@ TrajectoryAction Vehicle::constant_speed_trajectory() {
     /*
     Generate a constant speed trajectory.
     */
-    TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::MaintainSpeed, false, this->lane);
+    TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::MaintainSpeed, TrajectoryActionLaneChange::KeepLane, this->lane);
+    
+    trajectory.s = this->s;
+    trajectory.v = this->v;
 
     return trajectory;
 }
@@ -274,7 +277,10 @@ TrajectoryAction Vehicle::keep_lane_trajectory(map<int, TrajectoryAction> predic
 //    float new_v = kinematics[1];
 //    float new_a = kinematics[2];
 //    trajectory.push_back(Vehicle(this->lane, new_s, new_v, new_a, "KL"));
-    TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::MaintainSpeed, false, this->lane);
+    TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::MaintainSpeed, 
+            TrajectoryActionLaneChange::KeepLane, this->lane);
+    trajectory.s = this->s;
+    trajectory.v = this->v;
 
     return trajectory;
 }
@@ -288,8 +294,11 @@ TrajectoryAction Vehicle::prep_lane_change_trajectory(string state, map<int, Tra
     float new_a;
     Vehicle vehicle_behind;
     int new_lane = this->lane + lane_direction[state];
-    TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::MaintainSpeed, false, this->lane);
-    
+    TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::MaintainSpeed, 
+            TrajectoryActionLaneChange::KeepLane, this->lane);
+    trajectory.s = this->s;
+    trajectory.v = this->v;
+
 //    vector<float> curr_lane_new_kinematics = get_kinematics(predictions, this->lane);
 //
 //    if (get_vehicle_behind(predictions, this->lane, vehicle_behind)) {
@@ -334,9 +343,19 @@ TrajectoryAction Vehicle::lane_change_trajectory(string state, map<int, Trajecto
 //    trajectory.push_back(Vehicle(this->lane, this->s, this->v, this->a, this->state));
 //    vector<float> kinematics = get_kinematics(predictions, new_lane);
 //    trajectory.push_back(Vehicle(new_lane, kinematics[0], kinematics[1], kinematics[2], state));
+
+  TrajectoryActionLaneChange lc = TrajectoryActionLaneChange::KeepLane;
+  if (state.compare("LCL") == 0) {
+    lc = TrajectoryActionLaneChange::ChangeLeft;
+  } else if (state.compare("LCR") == 0) {
+    lc = TrajectoryActionLaneChange::ChangeRight;
+  }
+
+    TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::MaintainSpeed, 
+            lc, this->lane);
     
-    TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::MaintainSpeed, false, this->lane);
-    
+    trajectory.s = this->s;
+    trajectory.v = this->v;    
     return trajectory;
 }
 
@@ -351,7 +370,8 @@ TrajectoryAction Vehicle::generate_predictions(int horizon) {
     Generates predictions for non-ego vehicles to be used
     in trajectory generation for the ego vehicle.
     */
-	TrajectoryAction predictions = TrajectoryAction(TrajectoryActionSpeed::MaintainSpeed, false, this->lane);
+	TrajectoryAction predictions = TrajectoryAction(TrajectoryActionSpeed::MaintainSpeed, 
+          TrajectoryActionLaneChange::KeepLane, this->lane);
     predictions.v = this->v;
     predictions.s = (double) this->s + (horizon * 0.02 * this->v) ; 
 

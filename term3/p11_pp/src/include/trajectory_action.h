@@ -7,11 +7,13 @@
 using namespace std;
 
 enum class TrajectoryActionSpeed { Accelerate, Decelerate, MaintainSpeed };  
+enum class TrajectoryActionLaneChange { KeepLane, ChangeLeft, ChangeRight };  
 
 class TrajectoryAction {  
   public:
     TrajectoryActionSpeed speedAction = TrajectoryActionSpeed::Accelerate;
-    bool changeLane = false;
+    TrajectoryActionLaneChange changeLane = TrajectoryActionLaneChange::KeepLane;
+
     int goalLane = 0;
     double s;
     double v;
@@ -19,7 +21,7 @@ class TrajectoryAction {
     
     TrajectoryAction();
     
-    TrajectoryAction(TrajectoryActionSpeed spdAct, bool cl, int ln);
+    TrajectoryAction(TrajectoryActionSpeed spdAct, TrajectoryActionLaneChange cl, int ln);
     
     virtual ~TrajectoryAction();
 } ;

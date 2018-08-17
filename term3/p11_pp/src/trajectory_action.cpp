@@ -7,7 +7,7 @@
 
 TrajectoryAction::TrajectoryAction() { }
 
-TrajectoryAction::TrajectoryAction(TrajectoryActionSpeed spdAct, bool cl, int ln){
+TrajectoryAction::TrajectoryAction(TrajectoryActionSpeed spdAct, TrajectoryActionLaneChange cl, int ln){
   this->speedAction = spdAct;
   this->changeLane = cl;
   this->goalLane = ln;  
