@@ -20,6 +20,9 @@ using json = nlohmann::json;
 class Road
 {
   public:
+    static const int num_lanes = 3;
+    static constexpr double SPEED_LIMIT = 49.5;
+    static constexpr double MAX_ACCEL = 0.224; // 5m/sec2
     
     // Constructor and destructor
     Road(vector<double> wp_x, vector<double> wp_y, vector<double> wp_s, vector<double> wp_dx, vector<double> wp_dy);
@@ -27,17 +30,13 @@ class Road
 
     void update(const json &jsn);
     
-    void choose_ego_next_state(double ego_s, double ego_d, int frame, map<int, Vehicle> vehicles, Vehicle ego);    
+    TrajectoryAction choose_ego_next_state(double ego_s, double ego_d, int frame, map<int, Vehicle> vehicles, Vehicle ego);    
 
     //TODO refactor to remove
     vector<double> next_x_vals;
     vector<double> next_y_vals;
     
   private:
-    const int num_lanes = 3;
-    const double SPEED_LIMIT = 49.5;
-    const double MAX_ACCEL = 0.224; // 5m/sec2
-
     // Map waypoints
     vector<double> _wp_x;
     vector<double> _wp_y;

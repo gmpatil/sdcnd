@@ -23,8 +23,8 @@ class Vehicle {
     int id;
     int lane;
     float a;
-    float target_speed;
-    int lanes_available;
+    float target_speed = 49.5;
+    int lanes_available = 3;
     float max_acceleration;
     int goal_lane;
     int goal_s;
@@ -42,34 +42,34 @@ class Vehicle {
     //Destructor
     virtual ~Vehicle();
 
-    void update(double x1, double y1, double vx1, double vy1, double s1, 
-              double d1, double yaw1, double yaw_rel_lane1);
+    void update(double x1, double y1, double vx1, double vy1, double s1, double d1, double yaw1, double yaw_rel_lane1);
 
-    vector<TrajectoryAction> choose_next_state(map<int, vector<TrajectoryAction>> predictions); 
+    TrajectoryAction choose_next_state(map<int, TrajectoryAction> predictions, int horizon); 
 
     vector<string> successor_states();
 
-    vector<TrajectoryAction> generate_trajectory(string state, map<int, vector<TrajectoryAction>> predictions);
+    
+    TrajectoryAction generate_trajectory(string state, map<int, TrajectoryAction> predictions);
 
-    vector<float> get_kinematics(map<int, vector<TrajectoryAction>> predictions, int lane);
+    vector<float> get_kinematics(map<int, TrajectoryAction> predictions, int lane);
 
-    vector<TrajectoryAction> constant_speed_trajectory();
+    TrajectoryAction constant_speed_trajectory();
 
-    vector<TrajectoryAction> keep_lane_trajectory(map<int, vector<TrajectoryAction>> predictions);
+    TrajectoryAction keep_lane_trajectory(map<int, TrajectoryAction> predictions);
 
-    vector<TrajectoryAction> lane_change_trajectory(string state, map<int, vector<TrajectoryAction>> predictions);
+    TrajectoryAction lane_change_trajectory(string state, map<int, TrajectoryAction> predictions);
 
-    vector<TrajectoryAction> prep_lane_change_trajectory(string state, map<int, vector<TrajectoryAction>> predictions);
+    TrajectoryAction prep_lane_change_trajectory(string state, map<int, TrajectoryAction> predictions);
 
-    bool get_vehicle_behind(map<int, vector<TrajectoryAction>> predictions, int lane, Vehicle &rVehicle);
+    bool get_vehicle_behind(map<int, TrajectoryAction> predictions, int lane, Vehicle &rVehicle);
 
-    bool get_vehicle_ahead(map<int, vector<TrajectoryAction>> predictions, int lane, Vehicle &rVehicle);
+    bool get_vehicle_ahead(map<int, TrajectoryAction> predictions, int lane, Vehicle &rVehicle);
 
-    vector<TrajectoryAction> generate_predictions(int horizon = 2);
+    TrajectoryAction generate_predictions(int horizon = 2);
     
     float position_at(int t);
     
-    void realize_next_state(vector<TrajectoryAction> trajectory);
+    void realize_next_state(TrajectoryAction trajectory);
 
     void configure(vector<int> road_data);
 

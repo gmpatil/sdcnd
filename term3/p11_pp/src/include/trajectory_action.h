@@ -6,21 +6,25 @@
 
 using namespace std;
 
+enum class TrajectoryActionSpeed { Accelerate, Decelerate, MaintainSpeed };  
+
 class TrajectoryAction {  
   public:
-    bool decelerate = false;
-    bool change_lane = false;
-    int lane = 0;
+    TrajectoryActionSpeed speedAction = TrajectoryActionSpeed::Accelerate;
+    bool changeLane = false;
+    int goalLane = 0;
     double s;
-    string state;
     double v;
+    string state;
     
     TrajectoryAction();
     
-    TrajectoryAction(bool decel, bool cl, int ln);
+    TrajectoryAction(TrajectoryActionSpeed spdAct, bool cl, int ln);
     
     virtual ~TrajectoryAction();
 } ;
+
+extern TrajectoryAction NULL_TRAJECTORY_ACTION;
 
 #endif /* TRAJECTORY_ACTION_H */
 

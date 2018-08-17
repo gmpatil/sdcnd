@@ -8,7 +8,7 @@
 const float REACH_GOAL = pow(10, 6);
 const float EFFICIENCY = pow(10, 5);
 
-float goal_distance_cost(const Vehicle & vehicle, const vector<TrajectoryAction> & trajectory, const map<int, vector<TrajectoryAction>> &predictions, map<string, float> & data) {
+float goal_distance_cost(const Vehicle & vehicle, const TrajectoryAction & trajectory, const map<int, TrajectoryAction> &predictions, map<string, float> & data) {
   /*
   Cost increases based on distance of intended lane (for planning a lane change) and final lane of trajectory.
   Cost of being out of goal lane also becomes larger as vehicle approaches goal distance.
@@ -23,7 +23,7 @@ float goal_distance_cost(const Vehicle & vehicle, const vector<TrajectoryAction>
   return cost;
 }
 
-float inefficiency_cost(const Vehicle & vehicle, const vector<TrajectoryAction> & trajectory, const map<int, vector<TrajectoryAction>> &predictions, map<string, float> & data) {
+float inefficiency_cost(const Vehicle & vehicle, const TrajectoryAction & trajectory, const map<int, TrajectoryAction> &predictions, map<string, float> & data) {
   /*
   Cost becomes higher for trajectories with intended lane and final lane that have traffic slower than vehicle's target speed. 
    */
@@ -43,15 +43,15 @@ float inefficiency_cost(const Vehicle & vehicle, const vector<TrajectoryAction> 
   return cost;
 }
 
-float lane_speed(const map<int, vector<TrajectoryAction>> &predictions, int lane) {
+float lane_speed(const map<int, TrajectoryAction> &predictions, int lane) {
   /*
   All non ego vehicles in a lane have the same speed, so to get the speed limit for a lane,
   we can just find one vehicle in that lane.
    */
-  for (map<int, vector < TrajectoryAction>>::const_iterator it = predictions.begin(); it != predictions.end(); ++it) {
+  for (map<int, TrajectoryAction>::const_iterator it = predictions.begin(); it != predictions.end(); ++it) {
     int key = it->first;
-    TrajectoryAction vehicle = it->second[0];
-    if (vehicle.lane == lane && key != -1) {
+    TrajectoryAction vehicle = it->second;
+    if (vehicle.goalLane == lane && key != -1) {
       return vehicle.v;
     }
   }
@@ -59,7 +59,7 @@ float lane_speed(const map<int, vector<TrajectoryAction>> &predictions, int lane
   return -1.0;
 }
 
-float calculate_cost(const Vehicle & vehicle, const map<int, vector<TrajectoryAction>> &predictions, const vector<TrajectoryAction> & trajectory) {
+float calculate_cost(const Vehicle & vehicle, const map<int, TrajectoryAction> &predictions, const TrajectoryAction &trajectory) {
   /*
   Sum weighted cost functions to get total cost for trajectory.
    */
@@ -67,7 +67,7 @@ float calculate_cost(const Vehicle & vehicle, const map<int, vector<TrajectoryAc
   float cost = 0.0;
 
   //Add additional cost functions here.
-  vector < function<float(const Vehicle &, const vector<TrajectoryAction> &, const map<int, vector < TrajectoryAction>> &, map<string, float> &) >> cf_list = {goal_distance_cost, inefficiency_cost};
+  vector < function<float(const Vehicle &, const TrajectoryAction &, const map<int, TrajectoryAction> &, map<string, float> &) >> cf_list = {goal_distance_cost, inefficiency_cost};
   vector<float> weight_list = {REACH_GOAL, EFFICIENCY};
 
   for (int i = 0; i < cf_list.size(); i++) {
@@ -79,7 +79,8 @@ float calculate_cost(const Vehicle & vehicle, const map<int, vector<TrajectoryAc
 
 }
 
-map<string, float> get_helper_data(const Vehicle & vehicle, const vector<TrajectoryAction> & trajectory, const map<int, vector<TrajectoryAction>> &predictions) {
+map<string, float> get_helper_data(const Vehicle & vehicle, const TrajectoryAction &trajectory, 
+        const map<int, TrajectoryAction> &predictions) {
   /*
   Generate helper data to use in cost functions:
   indended_lane: the current lane +/- 1 if vehicle is planning or executing a lane change.
@@ -90,19 +91,19 @@ map<string, float> get_helper_data(const Vehicle & vehicle, const vector<Traject
   a lane change in the cost functions.
    */
   map<string, float> trajectory_data;
-  TrajectoryAction trajectory_last = trajectory[1];
+  TrajectoryAction trajectory_last = trajectory;
   float intended_lane;
 
   if (trajectory_last.state.compare("PLCL") == 0) {
-    intended_lane = trajectory_last.lane + 1;
+    intended_lane = trajectory_last.goalLane + 1;
   } else if (trajectory_last.state.compare("PLCR") == 0) {
-    intended_lane = trajectory_last.lane - 1;
+    intended_lane = trajectory_last.goalLane - 1;
   } else {
-    intended_lane = trajectory_last.lane;
+    intended_lane = trajectory_last.goalLane;
   }
 
   float distance_to_goal = vehicle.goal_s - trajectory_last.s;
-  float final_lane = trajectory_last.lane;
+  float final_lane = trajectory_last.goalLane;
   trajectory_data["intended_lane"] = intended_lane;
   trajectory_data["final_lane"] = final_lane;
   trajectory_data["distance_to_goal"] = distance_to_goal;

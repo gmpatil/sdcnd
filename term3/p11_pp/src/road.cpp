@@ -74,9 +74,30 @@ void updateOtherVehicles(map<int, Vehicle> vehicles, const json sensor_fusion,
   }
 }
 
-void Road::choose_ego_next_state(double ego_s, double ego_d, int frame, 
+/**
+ * Determine 
+ * - target/goal lane
+ * - whether to accelerate, decelerate or stay at same speed.
+ * 
+ * */
+
+TrajectoryAction Road::choose_ego_next_state(double ego_s, double ego_d, int frame, 
         map<int, Vehicle> vehicles, Vehicle ego) {
-    
+
+  map<int, TrajectoryAction> predictions;
+
+	map<int, Vehicle>::iterator it = vehicles.begin();
+  while(it != vehicles.end()) {
+        int v_id = it->first;
+        TrajectoryAction preds = it->second.generate_predictions(frame);
+        predictions[v_id] = preds;
+        it++;
+  }    
+
+  TrajectoryAction egoAction = this->ego.choose_next_state(predictions, frame);
+
+return egoAction;
+
 //    vector<string> states = successor_states();
 //    float cost;
 //    vector<float> costs;
@@ -96,17 +117,16 @@ void Road::choose_ego_next_state(double ego_s, double ego_d, int frame,
 //    int best_idx = distance(begin(costs), best_cost);
 //    return final_trajectories[best_idx];
 //    
+  
+    // map<int, Vehicle>::iterator it = this->vehicles.begin();
+    // vector<float> vd;
+    // vector<double> vs;
     
-    map<int, Vehicle>::iterator it = this->vehicles.begin();
-    vector<float> vd;
-    vector<double> vs;
-    
-    while(it != this->vehicles.end())  {
-      //check_car_s += ((double) prev_size * 0.02 * check_speed);
+    // while(it != this->vehicles.end())  {
+    //   //check_car_s += ((double) prev_size * 0.02 * check_speed);
+    //   it.
       
-    }
-    
-    return ;
+    // }
 }
 
 
