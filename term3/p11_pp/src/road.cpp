@@ -46,7 +46,7 @@ Road::~Road() {
 //}
 
 void updateOtherVehicles(map<int, Vehicle> vehicles, const json sensor_fusion, 
-        double rd_orientation) {
+        double rd_orientation, int horizon) {
   
   for (unsigned int i = 0; i < sensor_fusion.size(); i++) {
     int id = sensor_fusion[i][0];
@@ -63,12 +63,22 @@ void updateOtherVehicles(map<int, Vehicle> vehicles, const json sensor_fusion,
     std::map<int,Vehicle>::iterator it = vehicles.find(id);
     if (it == vehicles.end()) {
       Vehicle newV(id, x, y, vx, vy, s, d, yaw, yaw_rel_lane);
+
+      if (horizon > 1) {
+        newV.updateGoal(horizon);
+      }
+
       vehicles.insert(std::pair<int,Vehicle>(id, newV));      
       
       printf("Not found %d\n", id);      
     } else {
       Vehicle v = it->second;
       v.update(x, y, vx, vy, s, d, yaw, yaw_rel_lane);
+
+      if (horizon > 1) {
+        v.updateGoal(horizon);
+      }
+
       printf("Found %d\n", id) ;         
     }
   }
@@ -94,7 +104,8 @@ TrajectoryAction Road::choose_ego_next_state(double ego_s, double ego_d, int fra
         it++;
   }    
 
-  TrajectoryAction egoAction = this->ego.choose_next_state(predictions, frame);
+  map<int, vector<double>> traffic_info = get_traffic_kinematics(vehicles, ego);
+  TrajectoryAction egoAction = this->ego.choose_next_state(predictions, traffic_info, frame);
 
 return egoAction;
 
@@ -177,15 +188,19 @@ void Road::update(const json &jsn) {
 
   double rd_orientation = road_orientation(car_s, _wp_s, _wp_x, _wp_y);
   
+  int prev_size = previous_path_x.size();
+
   this->ego.update(car_x, car_y, 0, 0, car_s, car_d, car_yaw, 0);
+  this->ego.goal_v = ref_vel;
+
   
   // Update other vehicle data
 //  if (this->vehicles.size() <= 0){
 //    addOtherVehicles(this->vehicles, sensor_fusion, rd_orientation);
 //  } else {
-    updateOtherVehicles(this->vehicles, sensor_fusion, rd_orientation);
+  updateOtherVehicles(this->vehicles, sensor_fusion, rd_orientation, prev_size);
 //  }
-  
+
   //Initialize
   vector<double> next_x_vals_n;
   vector<double> next_y_vals_n;
@@ -195,46 +210,58 @@ void Road::update(const json &jsn) {
   //
   // go around w/o jerk, use spline
   //
-
-  int prev_size = previous_path_x.size();
   if (prev_size > 0) {
     car_s = end_path_s;
     car_d = end_path_d;
-  }
+    
+    this->ego.updateGoal(car_s, car_d, prev_size);
 
-  bool too_close = false;
+    TrajectoryAction ta = this->choose_ego_next_state(car_s, car_d, prev_size, this->vehicles, this->ego );
 
-  // find ref vel
-  for (int i = 0; i < sensor_fusion.size(); i++) {
-    // left most lane, when lane == 0.
-    // car in our lane
-    float d = sensor_fusion[i][6]; // ith car, 7th param(6) = d
-    if (d < (2 + 4 * this->lane + 2) && d > (2 + 4 * lane - 2)) {
-      double vx = sensor_fusion[i][3];
-      double vy = sensor_fusion[i][4];
-      double check_speed = sqrt(vx * vx + vy * vy);
-      double check_car_s = sensor_fusion[i][5]; // 6th param s val
+    if (ta.speedAction == TrajectoryActionSpeed::Decelerate) {
+      ref_vel -= Road::MAX_ACCEL; // 5m/sec2
+    } else if ((ta.speedAction == TrajectoryActionSpeed::Accelerate) && (ref_vel < SPEED_LIMIT) ) {
+      ref_vel += Road::MAX_ACCEL; // 5m/sec2
+    } 
 
-      check_car_s += ((double) prev_size * 0.02 * check_speed);
-      //check s values greater than mine and s gap
-      if ((check_car_s > car_s) && ((check_car_s - car_s) < 30)) {
-        // lower ref vel so that we do not crash
-        too_close = true;
-
-        if (lane > 0) {
-          lane = 0;
-        }
-
+    if (ta.changeLane == TrajectoryActionLaneChange::ChangeLeft) {
+      if (lane > 0) {
+        lane--;
+      }
+    } else if (ta.changeLane == TrajectoryActionLaneChange::ChangeRight) {
+      if (lane < (Road::NUM_LANES - 1) ) {
+        lane++;
       }
     }
+
   }
 
+  // bool too_close = false;
 
-  if (too_close) {
-    ref_vel -= MAX_ACCEL; // 5m/sec2
-  } else if (ref_vel < SPEED_LIMIT) {
-    ref_vel += MAX_ACCEL; // 5m/sec2
-  }
+  // // find ref vel
+  // for (int i = 0; i < sensor_fusion.size(); i++) {
+  //   // left most lane, when lane == 0.
+  //   // car in our lane
+  //   float d = sensor_fusion[i][6]; // ith car, 7th param(6) = d
+  //   if (d < (2 + 4 * this->lane + 2) && d > (2 + 4 * lane - 2)) {
+  //     double vx = sensor_fusion[i][3];
+  //     double vy = sensor_fusion[i][4];
+  //     double check_speed = sqrt(vx * vx + vy * vy);
+  //     double check_car_s = sensor_fusion[i][5]; // 6th param s val
+
+  //     check_car_s += ((double) prev_size * 0.02 * check_speed);
+  //     //check s values greater than mine and s gap
+  //     if ((check_car_s > car_s) && ((check_car_s - car_s) < 30)) {
+  //       // lower ref vel so that we do not crash
+  //       too_close = true;
+
+  //       if (lane > 0) {
+  //         lane = 0;
+  //       }
+
+  //     }
+  //   }
+  // }
 
 
   vector<double> ptsx;
@@ -329,4 +356,66 @@ void Road::update(const json &jsn) {
     next_x_vals.push_back(x_point);
     next_y_vals.push_back(y_point);
   }  
+}
+
+map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles, Vehicle ego) {
+
+    map<int, vector<double>> lane_traffic;       
+
+    double ego_s = ego.goal_s;
+    double ego_v = ego.v;
+    int ego_lane = ego.goal_lane;
+    int horizon = ego.goal_horizon;
+    int ego_id = ego.id;
+
+    int v_id;
+    int vhcl_lane;
+    double vhcl_s;
+    double vhcl_v;
+
+    double lane_nearest_s = MAX_S;
+    double lane_nearest_v = SPEED_LIMIT;
+    double lane_behind_nearest_s = 0;
+    double lane_behind_nearest_v = SPEED_LIMIT;
+    double vehicle_on_tgt_loc = 0; // 0 - false, 1 - true
+
+    for (int i=0; i++; i < NUM_LANES){
+      vector<double> lane_info = {lane_nearest_s, lane_nearest_v, lane_behind_nearest_s, lane_behind_nearest_v, vehicle_on_tgt_loc};
+      lane_traffic[i] = lane_info;
+      //lane_traffic.insert(std::pair<int,vector<double>>(i, lane_info));  
+    }
+
+    map<int, Vehicle>::iterator it = vehicles.begin();
+    while(it != vehicles.end()) {
+          v_id = it->first;
+          if (v_id != ego_id) {
+            Vehicle vhcl = it->second;
+            vhcl_s = vhcl.goal_s;
+            vhcl_v = vhcl.v;
+            vhcl_lane = vhcl.lane;
+
+            if (vhcl_s > ego_s) {
+              vector<double> lane_info = lane_traffic[vhcl_lane];
+              if (lane_info[0] > vhcl_s) {
+                lane_info[0] = vhcl_s;
+                lane_info[1] = vhcl_v;
+              }
+            }else {
+              vector<double> lane_info = lane_traffic[vhcl_lane];
+              if (lane_info[2] < vhcl_s) {
+                lane_info[2] = vhcl_s;
+                lane_info[3] = vhcl_v;
+              }
+            }
+
+            if ( abs(vhcl_s - ego_s) <= 3) {
+                vector<double> lane_info = lane_traffic[vhcl_lane];
+                lane_info[4] = 1; // possible collision
+            }
+          }
+
+          it++;
+    }     
+
+    return lane_traffic;
 }

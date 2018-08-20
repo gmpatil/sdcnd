@@ -20,9 +20,10 @@ using json = nlohmann::json;
 class Road
 {
   public:
-    static const int num_lanes = 3;
+    static const int NUM_LANES = 3;
     static constexpr double SPEED_LIMIT = 49.5;
     static constexpr double MAX_ACCEL = 0.224; // 5m/sec2
+    static constexpr double MAX_S = 6945.554;    
     
     // Constructor and destructor
     Road(vector<double> wp_x, vector<double> wp_y, vector<double> wp_s, vector<double> wp_dx, vector<double> wp_dy);
@@ -46,6 +47,8 @@ class Road
 
     Vehicle ego;
     map<int, Vehicle> vehicles;
+
+    map<int, vector<double>> get_traffic_kinematics(map<int, Vehicle> vehicles, Vehicle ego);
 
     //TODO remove
     int lane = 1;

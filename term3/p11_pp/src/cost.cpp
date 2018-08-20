@@ -30,15 +30,15 @@ float inefficiency_cost(const Vehicle & vehicle, const TrajectoryAction & trajec
 
   float proposed_speed_intended = lane_speed(predictions, data["intended_lane"]);
   if (proposed_speed_intended < 0) {
-    proposed_speed_intended = vehicle.target_speed;
+    proposed_speed_intended = vehicle.SPEED_LIMIT;
   }
 
   float proposed_speed_final = lane_speed(predictions, data["final_lane"]);
   if (proposed_speed_final < 0) {
-    proposed_speed_final = vehicle.target_speed;
+    proposed_speed_final = vehicle.SPEED_LIMIT;
   }
 
-  float cost = (2.0 * vehicle.target_speed - proposed_speed_intended - proposed_speed_final) / vehicle.target_speed;
+  float cost = (2.0 * vehicle.SPEED_LIMIT - proposed_speed_intended - proposed_speed_final) / vehicle.SPEED_LIMIT;
 
   return cost;
 }
@@ -51,7 +51,7 @@ float lane_speed(const map<int, TrajectoryAction> &predictions, int lane) {
   for (map<int, TrajectoryAction>::const_iterator it = predictions.begin(); it != predictions.end(); ++it) {
     int key = it->first;
     TrajectoryAction vehicle = it->second;
-    if (vehicle.goalLane == lane && key != -1) {
+    if (vehicle.goal_lane == lane && key != -1) {
       return vehicle.v;
     }
   }
@@ -95,15 +95,15 @@ map<string, float> get_helper_data(const Vehicle & vehicle, const TrajectoryActi
   float intended_lane;
 
   if (trajectory_last.state.compare("PLCL") == 0) {
-    intended_lane = trajectory_last.goalLane + 1;
+    intended_lane = trajectory_last.goal_lane + 1;
   } else if (trajectory_last.state.compare("PLCR") == 0) {
-    intended_lane = trajectory_last.goalLane - 1;
+    intended_lane = trajectory_last.goal_lane - 1;
   } else {
-    intended_lane = trajectory_last.goalLane;
+    intended_lane = trajectory_last.goal_lane;
   }
 
   float distance_to_goal = vehicle.goal_s - trajectory_last.s;
-  float final_lane = trajectory_last.goalLane;
+  float final_lane = trajectory_last.goal_lane;
   trajectory_data["intended_lane"] = intended_lane;
   trajectory_data["final_lane"] = final_lane;
   trajectory_data["distance_to_goal"] = distance_to_goal;

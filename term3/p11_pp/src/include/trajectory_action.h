@@ -14,10 +14,11 @@ class TrajectoryAction {
     TrajectoryActionSpeed speedAction = TrajectoryActionSpeed::Accelerate;
     TrajectoryActionLaneChange changeLane = TrajectoryActionLaneChange::KeepLane;
 
-    int goalLane = 0;
     double s;
     double v;
     string state;
+    int goal_lane = 0; 
+    double goal_s;
     
     TrajectoryAction();
     

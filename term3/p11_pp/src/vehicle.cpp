@@ -7,12 +7,11 @@
 #include "include/vehicle.h"
 #include "include/utils.h"
 #include "include/cost.h"
-#include "include/trajectory_action.h"
 
 /**
  * Initializes Vehicle
  */
-
+    
 Vehicle::Vehicle() {
 }
 
@@ -76,10 +75,23 @@ void Vehicle::update(double x1, double y1, double vx1, double vy1, double s1,
   
   this->lane = (int) std::floor(this->d / 4.0);
   this->goal_lane = this->lane ;
+  this->goal_v = v;
 }
 
+void Vehicle::updateGoal(double gs, double gd, int ghorizon) {
+    this->goal_d = gd;
+    this->goal_s = gs;
+    this->goal_horizon = ghorizon;
+    this->goal_lane = (int) std::floor(this->goal_d / 4.0);
+}
 
-TrajectoryAction Vehicle::choose_next_state(map<int, TrajectoryAction> predictions, int horizon) {
+void Vehicle::updateGoal(int ghorizon) {
+    this->goal_d = this->d;
+    this->goal_s = this->s + this->v * 0.02 * ghorizon; // 0.02 is sampling rate.
+    this->goal_horizon = ghorizon;
+}
+
+TrajectoryAction Vehicle::choose_next_state(map<int, TrajectoryAction> predictions, map<int, vector<double>> traffic_info, int horizon) {
     /*
     Here you can implement the transition_function code from the Behavior Planning Pseudocode
     classroom concept. Your goal will be to return the best (lowest cost) trajectory corresponding
@@ -98,11 +110,13 @@ TrajectoryAction Vehicle::choose_next_state(map<int, TrajectoryAction> predictio
     vector<TrajectoryAction> final_trajectories;
 
     for (vector<string>::iterator it = states.begin(); it != states.end(); ++it) {
-        TrajectoryAction trajectory = generate_trajectory(*it, predictions);
+        TrajectoryAction trajectory = generate_trajectory(*it, predictions, traffic_info);
         if (&trajectory != &NULL_TRAJECTORY_ACTION) {
             cost = calculate_cost(*this, predictions, trajectory);
             costs.push_back(cost);
             final_trajectories.push_back(trajectory);
+        } else {
+            std::cout << "NULL traj action for state:" << *it << std::endl;
         }
     }
 
@@ -124,7 +138,7 @@ vector<string> Vehicle::successor_states() {
     states.push_back("PLCL");
     states.push_back("PLCR");
   } else if (state.compare("PLCL") == 0) {
-    if (lane != lanes_available - 1) {
+    if (lane != NUM_LANES - 1) {
       states.push_back("PLCL");
       states.push_back("LCL");
     }
@@ -138,19 +152,19 @@ vector<string> Vehicle::successor_states() {
   return states;
 }
 
-TrajectoryAction Vehicle::generate_trajectory(string state, map<int, TrajectoryAction> predictions) {
+TrajectoryAction Vehicle::generate_trajectory(string state, map<int, TrajectoryAction> predictions, map<int, vector<double>> traffic_info) {
     /*
     Given a possible next state, generate the appropriate trajectory to realize the next state.
     */
     TrajectoryAction trajectory;
     if (state.compare("CS") == 0) {
-        trajectory = constant_speed_trajectory();
+        trajectory = constant_speed_trajectory(traffic_info);
     } else if (state.compare("KL") == 0) {
-        trajectory = keep_lane_trajectory(predictions);
+        trajectory = keep_lane_trajectory(predictions, traffic_info);
     } else if (state.compare("LCL") == 0 || state.compare("LCR") == 0) {
-        trajectory = lane_change_trajectory(state, predictions);
+        trajectory = lane_change_trajectory(state, predictions, traffic_info);
     } else if (state.compare("PLCL") == 0 || state.compare("PLCR") == 0) {
-        trajectory = prep_lane_change_trajectory(state, predictions);
+        trajectory = prep_lane_change_trajectory(state, predictions, traffic_info);
     }
     return trajectory;
 }
@@ -161,7 +175,7 @@ vector<float> Vehicle::get_kinematics(map<int, TrajectoryAction> predictions, in
     for a given lane. Tries to choose the maximum velocity and acceleration, 
     given other vehicle positions and accel/velocity constraints.
     */
-    float max_velocity_accel_limit = this->max_acceleration + this->v;
+    float max_velocity_accel_limit = this->MAX_ACCEL + this->v;
     float new_position;
     float new_velocity;
     float new_accel;
@@ -173,11 +187,11 @@ vector<float> Vehicle::get_kinematics(map<int, TrajectoryAction> predictions, in
         if (get_vehicle_behind(predictions, lane, vehicle_behind)) {
             new_velocity = vehicle_ahead.v; //must travel at the speed of traffic, regardless of preferred buffer
         } else {
-            float max_velocity_in_front = (vehicle_ahead.s - this->s - this->preferred_buffer) + vehicle_ahead.v - 0.5 * (this->a);
-            new_velocity = min(min(max_velocity_in_front, max_velocity_accel_limit), this->target_speed);
+            float max_velocity_in_front = (vehicle_ahead.s - this->s - this->PREF_BUFFER) + vehicle_ahead.v - 0.5 * (this->a);
+            new_velocity = min(min(max_velocity_in_front, max_velocity_accel_limit), (float)SPEED_LIMIT);
         }
     } else {
-        new_velocity = min(max_velocity_accel_limit, this->target_speed);
+        new_velocity = min(max_velocity_accel_limit, (float) SPEED_LIMIT);
     }
     
     new_accel = new_velocity - this->v; //Equation: (v_1 - v_0)/t = acceleration
@@ -185,6 +199,7 @@ vector<float> Vehicle::get_kinematics(map<int, TrajectoryAction> predictions, in
     return{new_position, new_velocity, new_accel};
     
 }
+
 
 bool Vehicle::get_vehicle_behind(map<int, TrajectoryAction> predictions, int lane, Vehicle & rVehicle) {
     /*
@@ -196,7 +211,7 @@ bool Vehicle::get_vehicle_behind(map<int, TrajectoryAction> predictions, int lan
     TrajectoryAction temp_vehicle;
     for (map<int, TrajectoryAction>::iterator it = predictions.begin(); it != predictions.end(); ++it) {
         temp_vehicle = it->second;
-        if (temp_vehicle.goalLane == this->lane && temp_vehicle.s < this->s && temp_vehicle.s > max_s) {
+        if (temp_vehicle.goal_lane == this->lane && temp_vehicle.goal_s < this->goal_s && temp_vehicle.goal_s > max_s) {
             max_s = temp_vehicle.s;
             // rVehicle = temp_vehicle;
             found_vehicle = true;
@@ -211,13 +226,13 @@ bool Vehicle::get_vehicle_ahead(map<int, TrajectoryAction> predictions, int lane
   Returns a true if a vehicle is found ahead of the current vehicle, false otherwise. The passed reference
   rVehicle is updated if a vehicle is found.
    */
-  int min_s = this->goal_s;
+  int min_s = Vehicle::MAX_S;
   bool found_vehicle = false;
   TrajectoryAction temp_vehicle;
   for (map<int, TrajectoryAction>::iterator it = predictions.begin(); it != predictions.end(); ++it) {
     temp_vehicle = it->second;
-    if (temp_vehicle.goalLane == this->lane && temp_vehicle.s > this->s && temp_vehicle.s < min_s) {
-      min_s = temp_vehicle.s;
+    if (temp_vehicle.goal_lane == this->lane && temp_vehicle.goal_s > this->goal_s && temp_vehicle.goal_s < min_s) {
+      min_s = temp_vehicle.goal_s;
       //rVehicle = temp_vehicle;
       found_vehicle = true;
     }
@@ -231,23 +246,23 @@ void Vehicle::realize_next_state(TrajectoryAction trajectory) {
    */
   TrajectoryAction next_state = trajectory;
   //this->state = next_state.state;
-  this->lane = next_state.goalLane;
+  this->lane = next_state.goal_lane;
   this->s = next_state.s;
   //this->v = next_state.v;
   //this->a = next_state.a;
 }
 
-void Vehicle::configure(vector<int> road_data) {
-  /*
-  Called by simulator before simulation begins. Sets various
-  parameters which will impact the ego vehicle. 
-   */
-  target_speed = road_data[0];
-  lanes_available = road_data[1];
-  goal_s = road_data[2];
-  goal_lane = road_data[3];
-  max_acceleration = road_data[4];
-}
+//void Vehicle::configure(vector<int> road_data) {
+//  /*
+//  Called by simulator before simulation begins. Sets various
+//  parameters which will impact the ego vehicle. 
+//   */
+//  target_speed = road_data[0];
+//  lanes_available = road_data[1];
+//  goal_s = road_data[2];
+//  goal_lane = road_data[3];
+//  max_acceleration = road_data[4];
+//}
 
 
 double Vehicle::get_s(int frame) {
@@ -255,106 +270,124 @@ double Vehicle::get_s(int frame) {
   return frame_s;
 }
 
-TrajectoryAction Vehicle::constant_speed_trajectory() {
+TrajectoryAction Vehicle::constant_speed_trajectory(map<int, vector<double>> traffic_info) {
     /*
     Generate a constant speed trajectory.
     */
-    TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::MaintainSpeed, TrajectoryActionLaneChange::KeepLane, this->lane);
-    
+
+   vector<double> lane_info = traffic_info[this->goal_lane];
+   double ahead_vehicle_s = lane_info[0];
+   if (ahead_vehicle_s - this->goal_s <= PREF_BUFFER) {
+       return NULL_TRAJECTORY_ACTION;
+   } else {
+    TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::MaintainSpeed, TrajectoryActionLaneChange::KeepLane, this->goal_lane);
     trajectory.s = this->s;
+    trajectory.goal_s = this->goal_s;
     trajectory.v = this->v;
 
     return trajectory;
+   }
 }
 
-TrajectoryAction Vehicle::keep_lane_trajectory(map<int, TrajectoryAction> predictions) {
+TrajectoryAction Vehicle::keep_lane_trajectory(map<int, TrajectoryAction> predictions, map<int, vector<double>> traffic_info) {
     /*
     Generate a keep lane trajectory.
     */
-//    vector<TrajectoryAction> trajectory = {Vehicle(lane, this->s, this->v, this->a, state)};
-//    vector<float> kinematics = get_kinematics(predictions, this->lane);
-//    float new_s = kinematics[0];
-//    float new_v = kinematics[1];
-//    float new_a = kinematics[2];
-//    trajectory.push_back(Vehicle(this->lane, new_s, new_v, new_a, "KL"));
-    TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::MaintainSpeed, 
-            TrajectoryActionLaneChange::KeepLane, this->lane);
-    trajectory.s = this->s;
-    trajectory.v = this->v;
+   vector<double> lane_info = traffic_info[this->goal_lane];
+   double ahead_vehicle_s = lane_info[0];
+   if (ahead_vehicle_s - this->goal_s <= PREF_BUFFER) {
+        TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::Decelerate, 
+                TrajectoryActionLaneChange::KeepLane, this->goal_lane);
+        trajectory.s = this->s;
+        trajectory.goal_s = this->goal_s;
+        trajectory.v = this->v - MAX_ACCEL;       
+        return trajectory;
+   } else {
+        TrajectoryActionSpeed speed;
+        double vel;
+        if (this->goal_v >= SPEED_LIMIT) {
+            speed = TrajectoryActionSpeed::Decelerate;
+            vel = this->v - MAX_ACCEL;       
+        } else {
+            speed = TrajectoryActionSpeed::Accelerate;
+            vel = this->v + MAX_ACCEL;       
+        }
 
-    return trajectory;
+        TrajectoryAction trajectory = TrajectoryAction(speed, TrajectoryActionLaneChange::KeepLane, this->goal_lane);
+        trajectory.s = this->s;
+        trajectory.goal_s = this->goal_s;
+        trajectory.v = vel;       
+
+        return trajectory;
+   }
 }
 
-TrajectoryAction Vehicle::prep_lane_change_trajectory(string state, map<int, TrajectoryAction> predictions) {
+TrajectoryAction Vehicle::prep_lane_change_trajectory(string state, map<int, TrajectoryAction> predictions, map<int, vector<double>> traffic_info) {
     /*
     Generate a trajectory preparing for a lane change.
     */
-    float new_s;
-    float new_v;
-    float new_a;
-    Vehicle vehicle_behind;
-    int new_lane = this->lane + lane_direction[state];
-    TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::MaintainSpeed, 
-            TrajectoryActionLaneChange::KeepLane, this->lane);
-    trajectory.s = this->s;
-    trajectory.v = this->v;
 
-//    vector<float> curr_lane_new_kinematics = get_kinematics(predictions, this->lane);
-//
-//    if (get_vehicle_behind(predictions, this->lane, vehicle_behind)) {
-//        //Keep speed of current lane so as not to collide with car behind.
-//        new_s = curr_lane_new_kinematics[0];
-//        new_v = curr_lane_new_kinematics[1];
-//        new_a = curr_lane_new_kinematics[2];
-//        
-//    } else {
-//        vector<float> best_kinematics;
-//        vector<float> next_lane_new_kinematics = get_kinematics(predictions, new_lane);
-//        //Choose kinematics with lowest velocity.
-//        if (next_lane_new_kinematics[1] < curr_lane_new_kinematics[1]) {
-//            best_kinematics = next_lane_new_kinematics;
-//        } else {
-//            best_kinematics = curr_lane_new_kinematics;
-//        }
-//        new_s = best_kinematics[0];
-//        new_v = best_kinematics[1];
-//        new_a = best_kinematics[2];
-//    }
-//
-//    trajectory.push_back(Vehicle(this->lane, new_s, new_v, new_a, state));
-    return trajectory;
+    int new_lane = this->lane + lane_direction[state];
+
+    vector<double> curr_lane_info = traffic_info[this->goal_lane];
+    vector<double> tgt_lane_info = traffic_info[new_lane];
+
+    TrajectoryActionSpeed speed = TrajectoryActionSpeed::MaintainSpeed;
+    double ahead_vehicle_s = curr_lane_info[0];
+    
+    if (ahead_vehicle_s - this->goal_s <= PREF_BUFFER) {
+        TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::Decelerate, 
+                TrajectoryActionLaneChange::KeepLane, this->goal_lane);
+        trajectory.s = this->s;
+        trajectory.goal_s = this->goal_s;
+        trajectory.v = this->v;       
+        return trajectory;
+    } else {
+        TrajectoryActionSpeed speed;
+        double vel;
+        if (this->goal_v >= SPEED_LIMIT) {
+            speed = TrajectoryActionSpeed::Decelerate;
+            vel = this->v - MAX_ACCEL;       
+        } else {
+            speed = TrajectoryActionSpeed::Accelerate;
+            vel = this->v + MAX_ACCEL;       
+        }
+
+        TrajectoryAction trajectory = TrajectoryAction(speed, TrajectoryActionLaneChange::KeepLane, this->goal_lane);
+        trajectory.s = this->s;
+        trajectory.goal_s = this->goal_s;
+        trajectory.v = vel;       
+
+        return trajectory;
+    }
 }
 
-TrajectoryAction Vehicle::lane_change_trajectory(string state, map<int, TrajectoryAction> predictions) {
+TrajectoryAction Vehicle::lane_change_trajectory(string state, map<int, TrajectoryAction> predictions, map<int, vector<double>> traffic_info) {
     /*
     Generate a lane change trajectory.
     */
-//    int new_lane = this->lane + lane_direction[state];
-//    vector<Vehicle> trajectory;
-//    Vehicle next_lane_vehicle;
-//    //Check if a lane change is possible (check if another vehicle occupies that spot).
-//    for (map<int, vector<Vehicle>>::iterator it = predictions.begin(); it != predictions.end(); ++it) {
-//        next_lane_vehicle = it->second[0];
-//        if (next_lane_vehicle.s == this->s && next_lane_vehicle.lane == new_lane) {
-//            //If lane change is not possible, return empty trajectory.
-//            return trajectory;
-//        }
-//    }
-//    trajectory.push_back(Vehicle(this->lane, this->s, this->v, this->a, this->state));
-//    vector<float> kinematics = get_kinematics(predictions, new_lane);
-//    trajectory.push_back(Vehicle(new_lane, kinematics[0], kinematics[1], kinematics[2], state));
+    int new_lane = this->lane + lane_direction[state];
 
-  TrajectoryActionLaneChange lc = TrajectoryActionLaneChange::KeepLane;
-  if (state.compare("LCL") == 0) {
-    lc = TrajectoryActionLaneChange::ChangeLeft;
-  } else if (state.compare("LCR") == 0) {
-    lc = TrajectoryActionLaneChange::ChangeRight;
-  }
+    vector<double> curr_lane_info = traffic_info[this->goal_lane];
+    vector<double> tgt_lane_info = traffic_info[new_lane];
+
+    if (tgt_lane_info[5] == 1) {
+        // possible collision
+        return NULL_TRAJECTORY_ACTION;
+    }
+
+    TrajectoryActionLaneChange lc = TrajectoryActionLaneChange::KeepLane;
+    if (state.compare("LCL") == 0) {
+        lc = TrajectoryActionLaneChange::ChangeLeft;
+    } else if (state.compare("LCR") == 0) {
+        lc = TrajectoryActionLaneChange::ChangeRight;
+    }
 
     TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::MaintainSpeed, 
-            lc, this->lane);
+            lc, this->goal_lane);
     
     trajectory.s = this->s;
+    trajectory.goal_s = this->goal_s;
     trajectory.v = this->v;    
     return trajectory;
 }
@@ -371,9 +404,11 @@ TrajectoryAction Vehicle::generate_predictions(int horizon) {
     in trajectory generation for the ego vehicle.
     */
 	TrajectoryAction predictions = TrajectoryAction(TrajectoryActionSpeed::MaintainSpeed, 
-          TrajectoryActionLaneChange::KeepLane, this->lane);
+          TrajectoryActionLaneChange::KeepLane, this->goal_lane);
     predictions.v = this->v;
-    predictions.s = (double) this->s + (horizon * 0.02 * this->v) ; 
+    //predictions.s = (double) this->s + (horizon * 0.02 * this->v) ; 
+    predictions.s = this->s;
+    predictions.goal_s = this->goal_s;
 
     return predictions;
 }

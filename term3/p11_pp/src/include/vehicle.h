@@ -11,6 +11,12 @@ using namespace std;
 
 class Vehicle {  
   public:
+    static const int NUM_LANES = 3;    
+    static constexpr double SPEED_LIMIT = 49.5; 
+    static constexpr double MAX_ACCEL = 0.224; // 5m/sec2;
+    static constexpr double MAX_S = 6945.554;
+    static const int PREF_BUFFER = 30; // 6; // impacts "keep lane" behavior.
+
     map<string, int> lane_direction = {
         {"PLCL", 1},
         {"LCL", 1},
@@ -22,44 +28,44 @@ class Vehicle {
 
     int id;
     int lane;
+    int goal_lane;    
     float a;
-    float target_speed = 49.5;
-    int lanes_available = 3;
-    float max_acceleration;
-    int goal_lane;
-    int goal_s;
+    double goal_s;
+    double goal_d;
+    double goal_v;
+    
+    int goal_horizon;
+
 
     string state;
-
-    int preferred_buffer = 6; // impacts "keep lane" behavior.
 
     // Constructors
     Vehicle();
     Vehicle(double x1, double y1, double vx1, double vy1, double s1, double d1, double yaw1, double yaw_rel_lane1);
-
     Vehicle(int id, double x1, double y1, double vx1, double vy1, double s1, double d1, double yaw1, double yaw_rel_lane1);
 
     //Destructor
     virtual ~Vehicle();
 
     void update(double x1, double y1, double vx1, double vy1, double s1, double d1, double yaw1, double yaw_rel_lane1);
+    void updateGoal(double s, double d, int horizon); //for Ego
+    void updateGoal(int horizon); // for non-Ego 
 
-    TrajectoryAction choose_next_state(map<int, TrajectoryAction> predictions, int horizon); 
+    TrajectoryAction choose_next_state(map<int, TrajectoryAction> predictions, map<int, vector<double>>, int horizon); 
 
     vector<string> successor_states();
-
     
-    TrajectoryAction generate_trajectory(string state, map<int, TrajectoryAction> predictions);
+    TrajectoryAction generate_trajectory(string state, map<int, TrajectoryAction> predictions, map<int, vector<double>> traffic_info);
 
     vector<float> get_kinematics(map<int, TrajectoryAction> predictions, int lane);
 
-    TrajectoryAction constant_speed_trajectory();
+    TrajectoryAction constant_speed_trajectory(map<int, vector<double>> traffic_info);
 
-    TrajectoryAction keep_lane_trajectory(map<int, TrajectoryAction> predictions);
+    TrajectoryAction keep_lane_trajectory(map<int, TrajectoryAction> predictions, map<int, vector<double>> traffic_info);
 
-    TrajectoryAction lane_change_trajectory(string state, map<int, TrajectoryAction> predictions);
+    TrajectoryAction lane_change_trajectory(string state, map<int, TrajectoryAction> predictions, map<int, vector<double>> traffic_info);
 
-    TrajectoryAction prep_lane_change_trajectory(string state, map<int, TrajectoryAction> predictions);
+    TrajectoryAction prep_lane_change_trajectory(string state, map<int, TrajectoryAction> predictions, map<int, vector<double>> traffic_info);
 
     bool get_vehicle_behind(map<int, TrajectoryAction> predictions, int lane, Vehicle &rVehicle);
 
@@ -71,7 +77,7 @@ class Vehicle {
     
     void realize_next_state(TrajectoryAction trajectory);
 
-    void configure(vector<int> road_data);
+    //void configure(vector<int> road_data);
 
     double get_s(int frame);
     
