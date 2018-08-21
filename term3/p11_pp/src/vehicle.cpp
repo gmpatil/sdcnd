@@ -15,27 +15,28 @@
 Vehicle::Vehicle() {
 }
 
-Vehicle::Vehicle(double x1, double y1, double vx1, double vy1, double s1, 
-              double d1, double yaw1, double yaw_rel_lane1){
-  this->x = x1;
-  this->y = y1;
-  this->vx = vx1;
-  this->vy = vy1;
-  this->s = s1;
-  this->d = d1;
-  this->yaw = yaw1;
 
-  this->v = sqrt(vx * vx + vy * vy);
-  this->yaw_rel_lane = yaw_rel_lane1;
-  this->v_s = v * cos(yaw_rel_lane);
-  this->v_d = v * sin(yaw_rel_lane);
+// Vehicle::Vehicle(double x1, double y1, double vx1, double vy1, double s1, 
+//               double d1, double yaw1, double yaw_rel_lane1){
+//   this->x = x1;
+//   this->y = y1;
+//   this->vx = vx1;
+//   this->vy = vy1;
+//   this->s = s1;
+//   this->d = d1;
+//   this->yaw = yaw1;
+
+//   this->v = sqrt(vx * vx + vy * vy);
+//   this->yaw_rel_lane = yaw_rel_lane1;
+//   this->v_s = v * cos(yaw_rel_lane);
+//   this->v_d = v * sin(yaw_rel_lane);
   
-  this->lane = (int) std::floor(this->d / 4.0);
-  this->goal_lane = this->lane ;
-}
+//   this->lane = (int) std::floor(this->d / 4.0);
+//   this->goal_lane = this->lane ;
+// }
 
 Vehicle::Vehicle(int idt, double x1, double y1, double vx1, double vy1, double s1, 
-              double d1, double yaw1, double yaw_rel_lane1){
+              float d1, double yaw1, double yaw_rel_lane1){
   this->id = idt;
   this->x = x1;
   this->y = y1;
@@ -59,7 +60,7 @@ Vehicle::~Vehicle() {
 }
 
 void Vehicle::update(double x1, double y1, double vx1, double vy1, double s1, 
-            double d1, double yaw1, double yaw_rel_lane1) {
+            float d1, double yaw1, double yaw_rel_lane1) {
   this->x = x1;
   this->y = y1;
   this->vx = vx1;
@@ -78,7 +79,7 @@ void Vehicle::update(double x1, double y1, double vx1, double vy1, double s1,
   this->goal_v = v;
 }
 
-void Vehicle::updateGoal(double gs, double gd, int ghorizon) {
+void Vehicle::updateGoal(double gs, float gd, int ghorizon) {
     this->goal_d = gd;
     this->goal_s = gs;
     this->goal_horizon = ghorizon;
@@ -103,6 +104,9 @@ TrajectoryAction Vehicle::choose_next_state(map<int, TrajectoryAction> predictio
     OUTPUT: The the best (lowest cost) trajectory corresponding to the next ego vehicle state.
 
     */
+    
+    cout << "Choosing next state for Ego in Vehicle\n" ;   
+    
     vector<string> states = successor_states();
     float cost;
     vector<float> costs;
@@ -368,7 +372,6 @@ TrajectoryAction Vehicle::lane_change_trajectory(string state, map<int, Trajecto
     */
     int new_lane = this->lane + lane_direction[state];
 
-    vector<double> curr_lane_info = traffic_info[this->goal_lane];
     vector<double> tgt_lane_info = traffic_info[new_lane];
 
     if (tgt_lane_info[5] == 1) {
@@ -384,7 +387,7 @@ TrajectoryAction Vehicle::lane_change_trajectory(string state, map<int, Trajecto
     }
 
     TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::MaintainSpeed, 
-            lc, this->goal_lane);
+            lc, new_lane);
     
     trajectory.s = this->s;
     trajectory.goal_s = this->goal_s;

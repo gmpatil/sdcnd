@@ -8,15 +8,51 @@
 const float REACH_GOAL = pow(10, 6);
 const float EFFICIENCY = pow(10, 5);
 
+// float goal_distance_cost(const Vehicle & vehicle, const TrajectoryAction & trajectory, const map<int, TrajectoryAction> &predictions, map<string, float> & data) {
+//   /*
+//   Cost increases based on distance of intended lane (for planning a lane change) and final lane of trajectory.
+//   Cost of being out of goal lane also becomes larger as vehicle approaches goal distance.
+//    */
+//   float cost;
+//   float distance = data["distance_to_goal"];
+//   if (distance > 0) {
+//     cost = 1 - 2 * exp(-(abs(2.0 * vehicle.goal_lane - data["intended_lane"] - data["final_lane"]) / distance));
+//   } else {
+//     cost = 1;
+//   }
+//   return cost;
+// }
+
+// float inefficiency_cost(const Vehicle & vehicle, const TrajectoryAction & trajectory, const map<int, TrajectoryAction> &predictions, map<string, float> & data) {
+//   /*
+//   Cost becomes higher for trajectories with intended lane and final lane that have traffic slower than vehicle's target speed. 
+//    */
+
+//   float proposed_speed_intended = lane_speed(predictions, data["intended_lane"]);
+//   if (proposed_speed_intended < 0) {
+//     proposed_speed_intended = vehicle.SPEED_LIMIT;
+//   }
+
+//   float proposed_speed_final = lane_speed(predictions, data["final_lane"]);
+//   if (proposed_speed_final < 0) {
+//     proposed_speed_final = vehicle.SPEED_LIMIT;
+//   }
+
+//   float cost = (2.0 * vehicle.SPEED_LIMIT - proposed_speed_intended - proposed_speed_final) / vehicle.SPEED_LIMIT;
+
+//   return cost;
+// }
+
 float goal_distance_cost(const Vehicle & vehicle, const TrajectoryAction & trajectory, const map<int, TrajectoryAction> &predictions, map<string, float> & data) {
   /*
   Cost increases based on distance of intended lane (for planning a lane change) and final lane of trajectory.
   Cost of being out of goal lane also becomes larger as vehicle approaches goal distance.
    */
+
   float cost;
-  float distance = data["distance_to_goal"];
-  if (distance > 0) {
-    cost = 1 - 2 * exp(-(abs(2.0 * vehicle.goal_lane - data["intended_lane"] - data["final_lane"]) / distance));
+
+  if ((trajectory.changeLane == TrajectoryActionLaneChange::ChangeLeft) || (trajectory.changeLane == TrajectoryActionLaneChange::ChangeRight)) {
+    cost = 2;
   } else {
     cost = 1;
   }
@@ -27,18 +63,10 @@ float inefficiency_cost(const Vehicle & vehicle, const TrajectoryAction & trajec
   /*
   Cost becomes higher for trajectories with intended lane and final lane that have traffic slower than vehicle's target speed. 
    */
+  double proposed_speed = vehicle.goal_v;
+  
 
-  float proposed_speed_intended = lane_speed(predictions, data["intended_lane"]);
-  if (proposed_speed_intended < 0) {
-    proposed_speed_intended = vehicle.SPEED_LIMIT;
-  }
-
-  float proposed_speed_final = lane_speed(predictions, data["final_lane"]);
-  if (proposed_speed_final < 0) {
-    proposed_speed_final = vehicle.SPEED_LIMIT;
-  }
-
-  float cost = (2.0 * vehicle.SPEED_LIMIT - proposed_speed_intended - proposed_speed_final) / vehicle.SPEED_LIMIT;
+  float cost = (2.0 * vehicle.SPEED_LIMIT - proposed_speed) / vehicle.SPEED_LIMIT;
 
   return cost;
 }

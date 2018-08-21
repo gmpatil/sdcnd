@@ -31,7 +31,7 @@ class Road
 
     void update(const json &jsn);
     
-    TrajectoryAction choose_ego_next_state(double ego_s, double ego_d, int frame, map<int, Vehicle> vehicles, Vehicle ego);    
+    TrajectoryAction choose_ego_next_state(double ego_s, double ego_d, int frame, map<int, Vehicle> &vehicles, Vehicle &ego);    
 
     //TODO refactor to remove
     vector<double> next_x_vals;

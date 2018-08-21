@@ -45,7 +45,7 @@ Road::~Road() {
 //  }
 //}
 
-void updateOtherVehicles(map<int, Vehicle> vehicles, const json sensor_fusion, 
+void updateOtherVehicles(map<int, Vehicle> &vehicles, const json &sensor_fusion, 
         double rd_orientation, int horizon) {
   
   for (unsigned int i = 0; i < sensor_fusion.size(); i++) {
@@ -55,14 +55,24 @@ void updateOtherVehicles(map<int, Vehicle> vehicles, const json sensor_fusion,
     double vx = sensor_fusion[i][3];
     double vy = sensor_fusion[i][4];
     double s = sensor_fusion[i][5];
-    double d = sensor_fusion[i][6];
+    float d = sensor_fusion[i][6];
     double yaw = atan2(vy, vx);    
     double yaw_rel_lane = yaw - rd_orientation;
     
+    cout << "id " << id << " x " << x << " y " << y << " vx " << vx << " vy " << vy << " s " << s << " d " << d << "\n";
+
+    if ((d < 0.0) || (d > 12.0)) {
+      cout << "Invalid D value skipping.\n" ;
+      continue;
+    }
+
     //Vehicle newV(x, y, vx, vy, s, d, yaw, yaw_rel_lane);
     std::map<int,Vehicle>::iterator it = vehicles.find(id);
     if (it == vehicles.end()) {
+
+      cout << "insert d = " << d << "\n" ;
       Vehicle newV(id, x, y, vx, vy, s, d, yaw, yaw_rel_lane);
+      cout << "v.lane = " << newV.lane << "\n" ;
 
       if (horizon > 1) {
         newV.updateGoal(horizon);
@@ -72,8 +82,11 @@ void updateOtherVehicles(map<int, Vehicle> vehicles, const json sensor_fusion,
       
       printf("Not found %d\n", id);      
     } else {
+      
+      cout << "update d = " << d << "\n" ;      
       Vehicle v = it->second;
       v.update(x, y, vx, vy, s, d, yaw, yaw_rel_lane);
+      cout << "v.lane = " << v.lane << "\n" ;
 
       if (horizon > 1) {
         v.updateGoal(horizon);
@@ -92,7 +105,9 @@ void updateOtherVehicles(map<int, Vehicle> vehicles, const json sensor_fusion,
  * */
 
 TrajectoryAction Road::choose_ego_next_state(double ego_s, double ego_d, int frame, 
-        map<int, Vehicle> vehicles, Vehicle ego) {
+        map<int, Vehicle> &vehicles, Vehicle &ego) {
+
+  cout << "Choosing next state for Ego in Road\n" ;
 
   map<int, TrajectoryAction> predictions;
 
@@ -104,7 +119,10 @@ TrajectoryAction Road::choose_ego_next_state(double ego_s, double ego_d, int fra
         it++;
   }    
 
+  cout << "Getting traffic info\n" ;
   map<int, vector<double>> traffic_info = get_traffic_kinematics(vehicles, ego);
+  cout << "Got traffic info\n" ;
+
   TrajectoryAction egoAction = this->ego.choose_next_state(predictions, traffic_info, frame);
 
 return egoAction;
@@ -192,6 +210,8 @@ void Road::update(const json &jsn) {
 
   this->ego.update(car_x, car_y, 0, 0, car_s, car_d, car_yaw, 0);
   this->ego.goal_v = ref_vel;
+  this->ego.id = 555;
+  cout << "Ego d = " << car_d << "\n" ;
 
   
   // Update other vehicle data
@@ -199,6 +219,7 @@ void Road::update(const json &jsn) {
 //    addOtherVehicles(this->vehicles, sensor_fusion, rd_orientation);
 //  } else {
   updateOtherVehicles(this->vehicles, sensor_fusion, rd_orientation, prev_size);
+  cout << this->vehicles.size() << " size of Vehicles Map \n" ;
 //  }
 
   //Initialize
@@ -359,7 +380,9 @@ void Road::update(const json &jsn) {
 }
 
 map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles, Vehicle ego) {
-
+    
+    cout << "In Road::get_traffic_kinematics\n" ;
+    
     map<int, vector<double>> lane_traffic;       
 
     double ego_s = ego.goal_s;
@@ -379,15 +402,25 @@ map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles
     double lane_behind_nearest_v = SPEED_LIMIT;
     double vehicle_on_tgt_loc = 0; // 0 - false, 1 - true
 
-    for (int i=0; i++; i < NUM_LANES){
+    cout << "Road::NUM_LANES " << Road::NUM_LANES << "\n" ;
+
+    for (int i = 0; i < Road::NUM_LANES; i++){
+
+      cout << "initialized I = " << i << "\n";
+      
       vector<double> lane_info = {lane_nearest_s, lane_nearest_v, lane_behind_nearest_s, lane_behind_nearest_v, vehicle_on_tgt_loc};
-      lane_traffic[i] = lane_info;
+      lane_traffic[(double) i] = lane_info;
       //lane_traffic.insert(std::pair<int,vector<double>>(i, lane_info));  
     }
+
+    cout << "In Road::get_traffic_kinematics, initialized the map\n" ;
 
     map<int, Vehicle>::iterator it = vehicles.begin();
     while(it != vehicles.end()) {
           v_id = it->first;
+          
+          cout << "Vehicle ID:" << v_id << "\n" ;
+
           if (v_id != ego_id) {
             Vehicle vhcl = it->second;
             vhcl_s = vhcl.goal_s;
@@ -395,27 +428,39 @@ map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles
             vhcl_lane = vhcl.lane;
 
             if (vhcl_s > ego_s) {
-              vector<double> lane_info = lane_traffic[vhcl_lane];
+              cout << "veh_S > ego_s" << "\n" ;
+              vector<double> lane_info = lane_traffic[(double) vhcl_lane];
               if (lane_info[0] > vhcl_s) {
+                cout << "front, new closest" << "\n" ;
                 lane_info[0] = vhcl_s;
                 lane_info[1] = vhcl_v;
               }
             }else {
-              vector<double> lane_info = lane_traffic[vhcl_lane];
+              cout << "veh_S <= ego_s, vhcl_lane = " << vhcl_lane << " lane_traffic_sz =" << lane_traffic.size() << "\n" ;              
+
+              vector<double> lane_info = lane_traffic[(double) vhcl_lane];
+
+              cout << "lane_info size " << lane_info.size() << "\n" ;
+
               if (lane_info[2] < vhcl_s) {
+                cout << "behind, new closest" << "\n" ;                
                 lane_info[2] = vhcl_s;
                 lane_info[3] = vhcl_v;
               }
             }
 
-            if ( abs(vhcl_s - ego_s) <= 3) {
-                vector<double> lane_info = lane_traffic[vhcl_lane];
-                lane_info[4] = 1; // possible collision
+            if ( abs(vhcl_s - ego_s) <= (double) 3.0) {
+                cout << "possible collision detected" << "\n" ;
+                vector<double> lane_info = lane_traffic[(double) vhcl_lane];
+                lane_info[4] = (double) 1; // possible collision
             }
+          } else {
+            cout << "Veh == Ego \n" ;
           }
 
           it++;
     }     
 
+    cout << "Returning from  Road::get_traffic_kinematics\n" ;
     return lane_traffic;
 }

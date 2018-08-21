@@ -31,7 +31,7 @@ class Vehicle {
     int goal_lane;    
     float a;
     double goal_s;
-    double goal_d;
+    float goal_d;
     double goal_v;
     
     int goal_horizon;
@@ -41,14 +41,14 @@ class Vehicle {
 
     // Constructors
     Vehicle();
-    Vehicle(double x1, double y1, double vx1, double vy1, double s1, double d1, double yaw1, double yaw_rel_lane1);
-    Vehicle(int id, double x1, double y1, double vx1, double vy1, double s1, double d1, double yaw1, double yaw_rel_lane1);
+    //Vehicle(double x1, double y1, double vx1, double vy1, double s1, float d1, double yaw1, double yaw_rel_lane1);
+    Vehicle(int id, double x1, double y1, double vx1, double vy1, double s1, float d1, double yaw1, double yaw_rel_lane1);
 
     //Destructor
     virtual ~Vehicle();
 
-    void update(double x1, double y1, double vx1, double vy1, double s1, double d1, double yaw1, double yaw_rel_lane1);
-    void updateGoal(double s, double d, int horizon); //for Ego
+    void update(double x1, double y1, double vx1, double vy1, double s1, float d1, double yaw1, double yaw_rel_lane1);
+    void updateGoal(double s, float d, int horizon); //for Ego
     void updateGoal(int horizon); // for non-Ego 
 
     TrajectoryAction choose_next_state(map<int, TrajectoryAction> predictions, map<int, vector<double>>, int horizon); 
@@ -86,7 +86,7 @@ class Vehicle {
     double y;
     double vx;
     double vy;
-    double d;  
+    float d;  
     double yaw; 
     double yaw_rel_lane;
     double v_s;
