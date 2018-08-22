@@ -10,6 +10,19 @@
 
 using json = nlohmann::json;
 
+
+void printPts(vector<double> x, vector<double> y){
+  cout << "X:Y" << "\n" ;
+  for (int i = 0; i < x.size(); i++)  {
+    cout << x[i] << ":" << y[i] << "\n" ;
+  }  
+}
+
+void printVhcl(Vehicle v){
+  cout << "Vehicle["<< v.id << "] s=" << v.s << " goal_s=" << v.goal_s << "v=" << v.v << " lane=" << v.lane << " goal_d=" << v.goal_d << "\n" ;
+}
+
+
 /**
  * Initializes Road
  */
@@ -45,7 +58,7 @@ Road::~Road() {
 //  }
 //}
 
-void updateOtherVehicles(map<int, Vehicle> &vehicles, const json &sensor_fusion, 
+void  updateOtherVehicles(map<int, Vehicle> &vehicles, const json &sensor_fusion, 
         double rd_orientation, int horizon) {
   
   for (unsigned int i = 0; i < sensor_fusion.size(); i++) {
@@ -59,20 +72,18 @@ void updateOtherVehicles(map<int, Vehicle> &vehicles, const json &sensor_fusion,
     double yaw = atan2(vy, vx);    
     double yaw_rel_lane = yaw - rd_orientation;
     
-    cout << "id " << id << " x " << x << " y " << y << " vx " << vx << " vy " << vy << " s " << s << " d " << d << "\n";
+    // cout << "id " << id << " x " << x << " y " << y << " vx " << vx << " vy " << vy << " s " << s << " d " << d << "\n";
 
     if ((d < 0.0) || (d > 12.0)) {
-      cout << "Invalid D value skipping.\n" ;
+      // cout << "Invalid D value skipping.\n" ;
       continue;
     }
 
     //Vehicle newV(x, y, vx, vy, s, d, yaw, yaw_rel_lane);
     std::map<int,Vehicle>::iterator it = vehicles.find(id);
     if (it == vehicles.end()) {
-
-      cout << "insert d = " << d << "\n" ;
       Vehicle newV(id, x, y, vx, vy, s, d, yaw, yaw_rel_lane);
-      cout << "v.lane = " << newV.lane << "\n" ;
+      //cout << "v.lane = " << newV.lane << "\n" ;
 
       if (horizon > 1) {
         newV.updateGoal(horizon);
@@ -80,19 +91,19 @@ void updateOtherVehicles(map<int, Vehicle> &vehicles, const json &sensor_fusion,
 
       vehicles.insert(std::pair<int,Vehicle>(id, newV));      
       
-      printf("Not found %d\n", id);      
+      // printf("Not found %d\n", id);      
     } else {
       
-      cout << "update d = " << d << "\n" ;      
-      Vehicle v = it->second;
-      v.update(x, y, vx, vy, s, d, yaw, yaw_rel_lane);
-      cout << "v.lane = " << v.lane << "\n" ;
+      // cout << "update d = " << d << "\n" ;      
+      //Vehicle v = it->second;
+      it->second.update(x, y, vx, vy, s, d, yaw, yaw_rel_lane);
+      // cout << "v.lane = " << v.lane << "\n" ;
 
       if (horizon > 1) {
-        v.updateGoal(horizon);
+        it->second.updateGoal(horizon);
       }
 
-      printf("Found %d\n", id) ;         
+      // printf("Found %d\n", id) ;         
     }
   }
 }
@@ -107,7 +118,7 @@ void updateOtherVehicles(map<int, Vehicle> &vehicles, const json &sensor_fusion,
 TrajectoryAction Road::choose_ego_next_state(double ego_s, double ego_d, int frame, 
         map<int, Vehicle> &vehicles, Vehicle &ego) {
 
-  cout << "Choosing next state for Ego in Road\n" ;
+  // cout << "Choosing next state for Ego in Road\n" ;
 
   map<int, TrajectoryAction> predictions;
 
@@ -119,11 +130,13 @@ TrajectoryAction Road::choose_ego_next_state(double ego_s, double ego_d, int fra
         it++;
   }    
 
-  cout << "Getting traffic info\n" ;
+  // cout << "Getting traffic info\n" ;
   map<int, vector<double>> traffic_info = get_traffic_kinematics(vehicles, ego);
-  cout << "Got traffic info\n" ;
+  // cout << "Got traffic info\n" ;
 
   TrajectoryAction egoAction = this->ego.choose_next_state(predictions, traffic_info, frame);
+
+  cout << "Next state: cl(k0/l1/r2):" << (int) egoAction.changeLane << " goal lane:" << egoAction.goal_lane << " Speed action(a0/d1/m2):" << (int) egoAction.speedAction << "\n" ;
 
 return egoAction;
 
@@ -196,6 +209,9 @@ void Road::update(const json &jsn) {
   auto previous_path_x = jsn[1]["previous_path_x"];
   auto previous_path_y = jsn[1]["previous_path_y"];
   
+  // cout << " prev path" << "\n" ;
+  // printPts (previous_path_x, previous_path_y);
+
   // Previous path's end s and d values 
   double end_path_s = jsn[1]["end_path_s"];
   double end_path_d = jsn[1]["end_path_d"];
@@ -209,16 +225,19 @@ void Road::update(const json &jsn) {
   int prev_size = previous_path_x.size();
 
   this->ego.update(car_x, car_y, 0, 0, car_s, car_d, car_yaw, 0);
+  this->ego.v = ref_vel;
   this->ego.goal_v = ref_vel;
   this->ego.id = 555;
-  cout << "Ego d = " << car_d << "\n" ;
+  cout << "Ego d = " << car_d << " v=" << this->ego.v << " lane=" << this->ego.lane << "\n" ;
 
   
   // Update other vehicle data
 //  if (this->vehicles.size() <= 0){
 //    addOtherVehicles(this->vehicles, sensor_fusion, rd_orientation);
 //  } else {
+  //this->vehicles = updateOtherVehicles(this->vehicles, sensor_fusion, rd_orientation, prev_size);
   updateOtherVehicles(this->vehicles, sensor_fusion, rd_orientation, prev_size);
+  printVhcl(this->vehicles[0]);
   cout << this->vehicles.size() << " size of Vehicles Map \n" ;
 //  }
 
@@ -227,6 +246,9 @@ void Road::update(const json &jsn) {
   vector<double> next_y_vals_n;
   this->next_x_vals = next_x_vals_n;
   this->next_y_vals = next_y_vals_n;
+
+  int prev_lane = lane;
+  int lane_change_dir = 0;
 
   //
   // go around w/o jerk, use spline
@@ -248,13 +270,20 @@ void Road::update(const json &jsn) {
     if (ta.changeLane == TrajectoryActionLaneChange::ChangeLeft) {
       if (lane > 0) {
         lane--;
+        lane_change_dir = -1;
       }
     } else if (ta.changeLane == TrajectoryActionLaneChange::ChangeRight) {
       if (lane < (Road::NUM_LANES - 1) ) {
         lane++;
+        lane_change_dir = 1;
       }
     }
 
+    this->ego.state = ta.state;
+    cout << "Ego state changed to " << this->ego.state << "\n" ;
+
+  } else {
+    ref_vel += Road::MAX_ACCEL; // 5m/sec2
   }
 
   // bool too_close = false;
@@ -288,6 +317,9 @@ void Road::update(const json &jsn) {
   vector<double> ptsx;
   vector<double> ptsy;
 
+  // cout << " ptsxy empty" << "\n" ;
+  // printPts (ptsx, ptsy);
+  
   // ref states
   double car_x_calc = car_x;
   double car_y_calc = car_y;
@@ -302,6 +334,10 @@ void Road::update(const json &jsn) {
     
     ptsx.push_back(car_x_calc);
     ptsy.push_back(car_y_calc);
+
+    // cout << " ptsxy prev < 2 " << " prev sz " << prev_size << " pts""\n" ;
+    // printPts (ptsx, ptsy);
+
   } else {
     car_x_calc = previous_path_x[prev_size - 1];
     car_y_calc = previous_path_y[prev_size - 1];
@@ -316,24 +352,31 @@ void Road::update(const json &jsn) {
 
     ptsy.push_back(prev_car_y);
     ptsy.push_back(car_y_calc);
+
+    // cout << " ptsxy prev >=  2"  << " prev sz " << prev_size << " pts""\n" ;
+    // printPts (ptsx, ptsy);
+
   }
 
   // add 3 more forward way points. Use Frenet.
-  vector<double> next_wp = getXY(car_s + 30, (2 + 4 * lane),
+  vector<double> next_wp = getXY(car_s + 30, (2 + 4 * prev_lane ),
           this->_wp_s, this->_wp_x, this->_wp_y);
   ptsx.push_back(next_wp[0]);
   ptsy.push_back(next_wp[1]);
 
-  vector<double> next_wp2 = getXY(car_s + 60, (2 + 4 * lane),
+  vector<double> next_wp2 = getXY(car_s + 60, (2 + 4 * prev_lane + (lane_change_dir * 2)),
           this->_wp_s, this->_wp_x, this->_wp_y);
   ptsx.push_back(next_wp2[0]);
   ptsy.push_back(next_wp2[1]);
 
-  vector<double> next_wp3 = getXY(car_s + 90, (2 + 4 * lane),
+  vector<double> next_wp3 = getXY(car_s + 90, (2 + 4 * prev_lane + (lane_change_dir * 4)),
           this->_wp_s, this->_wp_x, this->_wp_y);
   ptsx.push_back(next_wp3[0]);
   ptsy.push_back(next_wp3[1]);
 
+  // cout << " ptsxy before car reference" << "\n" ;
+  // printPts (ptsx, ptsy);
+  
   // Shift the points to car reference 
   for (int i = 0; i < ptsx.size(); i++) {
     double shift_x = ptsx[i] - car_x_calc;
@@ -343,8 +386,14 @@ void Road::update(const json &jsn) {
     ptsy[i] = (shift_x * sin(0 - ref_yaw) + shift_y * cos(0 - ref_yaw));
   }
 
+  // cout << " ptsxy after car reference" << "\n" ;
+  // printPts (ptsx, ptsy);
+
   // create spline, reference to the Car co-ordinate
   tk::spline spln;
+
+  // printPts (ptsx, ptsy);
+
   spln.set_points(ptsx, ptsy); //ptsx and ptsy now have co-ordinate relative to the car.
 
   //previous path points
@@ -376,6 +425,9 @@ void Road::update(const json &jsn) {
 
     next_x_vals.push_back(x_point);
     next_y_vals.push_back(y_point);
+
+    // cout << " next x, y " << "\n" ;
+    // printPts (next_x_vals, next_y_vals);    
   }  
 }
 
@@ -398,62 +450,65 @@ map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles
 
     double lane_nearest_s = MAX_S;
     double lane_nearest_v = SPEED_LIMIT;
-    double lane_behind_nearest_s = 0;
+    double lane_behind_nearest_s = MAX_S;
     double lane_behind_nearest_v = SPEED_LIMIT;
     double vehicle_on_tgt_loc = 0; // 0 - false, 1 - true
 
-    cout << "Road::NUM_LANES " << Road::NUM_LANES << "\n" ;
+    // cout << "Road::NUM_LANES " << Road::NUM_LANES << "\n" ;
 
     for (int i = 0; i < Road::NUM_LANES; i++){
 
-      cout << "initialized I = " << i << "\n";
+      // cout << "initialized I = " << i << "\n";
       
       vector<double> lane_info = {lane_nearest_s, lane_nearest_v, lane_behind_nearest_s, lane_behind_nearest_v, vehicle_on_tgt_loc};
       lane_traffic[(double) i] = lane_info;
       //lane_traffic.insert(std::pair<int,vector<double>>(i, lane_info));  
     }
 
-    cout << "In Road::get_traffic_kinematics, initialized the map\n" ;
+    // cout << "In Road::get_traffic_kinematics, initialized the map\n" ;
+
+    cout << "Ego " << " lane=" << ego_lane << " s=" << ego.s << " goal_s=" << ego_s << " v=" << ego_v  << "\n" ;
+
+    vector<double> *lane_info;
 
     map<int, Vehicle>::iterator it = vehicles.begin();
     while(it != vehicles.end()) {
           v_id = it->first;
           
-          cout << "Vehicle ID:" << v_id << "\n" ;
+          // cout << "Vehicle ID:" << v_id << "\n" ;
 
           if (v_id != ego_id) {
             Vehicle vhcl = it->second;
             vhcl_s = vhcl.goal_s;
             vhcl_v = vhcl.v;
             vhcl_lane = vhcl.lane;
+            // cout << "Vhcl[" << v_id << "]" << " s=" << vhcl.s << " goal_s=" << vhcl_s << " v=" << vhcl_v << " lane=" << vhcl_lane << "\n" ;            
 
+            lane_info = &lane_traffic[vhcl_lane];
+              // cout << "lane_info size " << lane_info.size() << "\n" ;
+            
             if (vhcl_s > ego_s) {
-              cout << "veh_S > ego_s" << "\n" ;
-              vector<double> lane_info = lane_traffic[(double) vhcl_lane];
-              if (lane_info[0] > vhcl_s) {
-                cout << "front, new closest" << "\n" ;
-                lane_info[0] = vhcl_s;
-                lane_info[1] = vhcl_v;
+              // cout << "veh_S > ego_s" << "\n" ;
+              if (lane_info->at(0) > (vhcl_s - ego_s) ) {
+                // cout << "front, new closest " << vhcl.id << " dist " << (vhcl_s - ego_s) << " vel " << vhcl_v << "\n" ;
+                lane_info->at(0) = vhcl_s - ego_s;
+                lane_info->at(1) = vhcl_v;
               }
-            }else {
-              cout << "veh_S <= ego_s, vhcl_lane = " << vhcl_lane << " lane_traffic_sz =" << lane_traffic.size() << "\n" ;              
 
-              vector<double> lane_info = lane_traffic[(double) vhcl_lane];
+              if ( abs(vhcl_s - ego_s) <= (double) 30.0) {
+                  cout << "possible collision if in lane " << vhcl_lane << "\n" ;
+                  lane_info->at(4) = (double) 1; // possible collision
+              }
 
-              cout << "lane_info size " << lane_info.size() << "\n" ;
-
-              if (lane_info[2] < vhcl_s) {
-                cout << "behind, new closest" << "\n" ;                
-                lane_info[2] = vhcl_s;
-                lane_info[3] = vhcl_v;
+            } else {
+              // cout << "veh_S <= ego_s, vhcl_lane = " << vhcl_lane << " lane_traffic_sz =" << lane_traffic.size() << "\n" ;              
+              if (lane_info->at(2) > (ego_s - vhcl_s))  {
+                // cout << "behind, new closest" << vhcl.id << " dist " << (ego_s - vhcl_s) << " vel " << vhcl_v << "\n" ;
+                lane_info->at(2) = ego_s - vhcl_s;
+                lane_info->at(3) = vhcl_v;
               }
             }
 
-            if ( abs(vhcl_s - ego_s) <= (double) 3.0) {
-                cout << "possible collision detected" << "\n" ;
-                vector<double> lane_info = lane_traffic[(double) vhcl_lane];
-                lane_info[4] = (double) 1; // possible collision
-            }
           } else {
             cout << "Veh == Ego \n" ;
           }
@@ -461,6 +516,13 @@ map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles
           it++;
     }     
 
-    cout << "Returning from  Road::get_traffic_kinematics\n" ;
+
+    for (int i = 0; i < Road::NUM_LANES; i++){      
+      vector<double> lane_info = lane_traffic[(double) i] ;
+      cout << "Lane " << i << " fs:" << lane_info[0] << " fv:" << lane_info[1] << " bs:" << lane_info[2] << " bv:" << lane_info[3] << " coll:" << lane_info[4] << "\n" ;
+    }
+
+    // cout << "Returning from  Road::get_traffic_kinematics\n" ;
     return lane_traffic;
 }
+

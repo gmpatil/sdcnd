@@ -37,7 +37,7 @@ class Vehicle {
     int goal_horizon;
 
 
-    string state;
+    string state = "KL";
 
     // Constructors
     Vehicle();

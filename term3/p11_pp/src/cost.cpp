@@ -5,7 +5,7 @@
 #include <map>
 #include <math.h>
 
-const float REACH_GOAL = pow(10, 6);
+const float REACH_GOAL = pow(10, 5);
 const float EFFICIENCY = pow(10, 5);
 
 // float goal_distance_cost(const Vehicle & vehicle, const TrajectoryAction & trajectory, const map<int, TrajectoryAction> &predictions, map<string, float> & data) {
@@ -51,11 +51,17 @@ float goal_distance_cost(const Vehicle & vehicle, const TrajectoryAction & traje
 
   float cost;
 
-  if ((trajectory.changeLane == TrajectoryActionLaneChange::ChangeLeft) || (trajectory.changeLane == TrajectoryActionLaneChange::ChangeRight)) {
-    cost = 2;
+  // if ((trajectory.changeLane == TrajectoryActionLaneChange::ChangeLeft) || (trajectory.changeLane == TrajectoryActionLaneChange::ChangeRight)) {
+  if ((trajectory.state.compare("LCL") == 0 ) || (trajectory.state.compare("LCR") == 0 ) || (trajectory.state.compare("PLCL") == 0 ) || (trajectory.state.compare("PLCR") == 0 )) {    
+    cost = 1.10; // 0.10 for reducing velocity by 5m.
   } else {
-    cost = 1;
+    cost = 1.0;
   }
+
+  cost += trajectory.tgt_lane_coll;
+
+  cost += (1.0/trajectory.tgt_lane_dist) ;
+
   return cost;
 }
 
@@ -64,9 +70,14 @@ float inefficiency_cost(const Vehicle & vehicle, const TrajectoryAction & trajec
   Cost becomes higher for trajectories with intended lane and final lane that have traffic slower than vehicle's target speed. 
    */
   double proposed_speed = vehicle.goal_v;
-  
 
-  float cost = (2.0 * vehicle.SPEED_LIMIT - proposed_speed) / vehicle.SPEED_LIMIT;
+  // if ((trajectory.state.compare("LCL") == 0 ) || (trajectory.state.compare("LCR") == 0 ) || (trajectory.state.compare("PLCL") == 0 ) || (trajectory.state.compare("PLCR") == 0 )) {    
+    if (trajectory.tgt_lane_vel > proposed_speed){
+      proposed_speed = trajectory.tgt_lane_vel;
+    }
+  // }
+
+  float cost = ( (2.0 * Vehicle::SPEED_LIMIT) - proposed_speed) / Vehicle::SPEED_LIMIT;
 
   return cost;
 }

@@ -53,6 +53,7 @@ Vehicle::Vehicle(int idt, double x1, double y1, double vx1, double vy1, double s
   
   this->lane = (int) std::floor(this->d / 4.0);
   this->goal_lane = this->lane ;
+  this->goal_v = v;  
 }
 
 
@@ -76,7 +77,6 @@ void Vehicle::update(double x1, double y1, double vx1, double vy1, double s1,
   
   this->lane = (int) std::floor(this->d / 4.0);
   this->goal_lane = this->lane ;
-  this->goal_v = v;
 }
 
 void Vehicle::updateGoal(double gs, float gd, int ghorizon) {
@@ -90,6 +90,7 @@ void Vehicle::updateGoal(int ghorizon) {
     this->goal_d = this->d;
     this->goal_s = this->s + this->v * 0.02 * ghorizon; // 0.02 is sampling rate.
     this->goal_horizon = ghorizon;
+    this->goal_lane = (int) std::floor(this->goal_d / 4.0);    
 }
 
 TrajectoryAction Vehicle::choose_next_state(map<int, TrajectoryAction> predictions, map<int, vector<double>> traffic_info, int horizon) {
@@ -117,6 +118,7 @@ TrajectoryAction Vehicle::choose_next_state(map<int, TrajectoryAction> predictio
         TrajectoryAction trajectory = generate_trajectory(*it, predictions, traffic_info);
         if (&trajectory != &NULL_TRAJECTORY_ACTION) {
             cost = calculate_cost(*this, predictions, trajectory);
+            cout << "State:" << *it << " cost=" << cost << "\n" ;
             costs.push_back(cost);
             final_trajectories.push_back(trajectory);
         } else {
@@ -126,6 +128,8 @@ TrajectoryAction Vehicle::choose_next_state(map<int, TrajectoryAction> predictio
 
     vector<float>::iterator best_cost = min_element(begin(costs), end(costs));
     int best_idx = distance(begin(costs), best_cost);
+
+    cout << "min cost traj:state=" << final_trajectories[best_idx].state << " accelerate(a0/d1/m2):" << (int) final_trajectories[best_idx].speedAction << " lanechange(k0/l1/r2):"<< (int) final_trajectories[best_idx].changeLane << "\n" ;
     return final_trajectories[best_idx];
 }
 
@@ -287,7 +291,12 @@ TrajectoryAction Vehicle::constant_speed_trajectory(map<int, vector<double>> tra
     TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::MaintainSpeed, TrajectoryActionLaneChange::KeepLane, this->goal_lane);
     trajectory.s = this->s;
     trajectory.goal_s = this->goal_s;
-    trajectory.v = this->v;
+    trajectory.v = this->goal_v;
+    trajectory.state = "KL" ;  
+
+    trajectory.tgt_lane_dist = lane_info[0];        
+    trajectory.tgt_lane_vel = lane_info[1];
+    trajectory.tgt_lane_coll = lane_info[4];    
 
     return trajectory;
    }
@@ -298,30 +307,45 @@ TrajectoryAction Vehicle::keep_lane_trajectory(map<int, TrajectoryAction> predic
     Generate a keep lane trajectory.
     */
    vector<double> lane_info = traffic_info[this->goal_lane];
-   double ahead_vehicle_s = lane_info[0];
-   if (ahead_vehicle_s - this->goal_s <= PREF_BUFFER) {
+   double dist_ahead_vehicle_s = lane_info[0];
+
+   if ( (dist_ahead_vehicle_s <= PREF_BUFFER)  || (lane_info[4] == 1)){
+        cout << "KL Traj: Possible collision, decelerating...." << "\n" ;
         TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::Decelerate, 
                 TrajectoryActionLaneChange::KeepLane, this->goal_lane);
         trajectory.s = this->s;
         trajectory.goal_s = this->goal_s;
-        trajectory.v = this->v - MAX_ACCEL;       
+        trajectory.v = this->goal_v - MAX_ACCEL;     
+        trajectory.state = "KL" ;  
+
+        trajectory.tgt_lane_dist = lane_info[0];        
+        trajectory.tgt_lane_vel = lane_info[1];
+        trajectory.tgt_lane_coll = lane_info[4];
+
+        cout << "KL: Ego.v=" << this->v <<" traj_v=" << trajectory.v << "\n";        
         return trajectory;
    } else {
         TrajectoryActionSpeed speed;
         double vel;
         if (this->goal_v >= SPEED_LIMIT) {
             speed = TrajectoryActionSpeed::Decelerate;
-            vel = this->v - MAX_ACCEL;       
+            vel = this->goal_v  - MAX_ACCEL;       
         } else {
             speed = TrajectoryActionSpeed::Accelerate;
-            vel = this->v + MAX_ACCEL;       
+            vel = this->goal_v  + MAX_ACCEL;       
         }
 
         TrajectoryAction trajectory = TrajectoryAction(speed, TrajectoryActionLaneChange::KeepLane, this->goal_lane);
         trajectory.s = this->s;
         trajectory.goal_s = this->goal_s;
         trajectory.v = vel;       
+        trajectory.state = "KL" ;
 
+        trajectory.tgt_lane_dist = lane_info[0];        
+        trajectory.tgt_lane_vel = lane_info[1];
+        trajectory.tgt_lane_coll = lane_info[4];
+
+        cout << "KL: Ego.v=" << this->v << " traj_v=" << trajectory.v << " ttraj.gt_lane_vel=" << trajectory.tgt_lane_vel << "\n";                
         return trajectory;
    }
 }
@@ -338,32 +362,74 @@ TrajectoryAction Vehicle::prep_lane_change_trajectory(string state, map<int, Tra
 
     TrajectoryActionSpeed speed = TrajectoryActionSpeed::MaintainSpeed;
     double ahead_vehicle_s = curr_lane_info[0];
-    
-    if (ahead_vehicle_s - this->goal_s <= PREF_BUFFER) {
-        TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::Decelerate, 
+    double ahead_vehicle_s_tgt = tgt_lane_info[0];
+
+    if (tgt_lane_info[5] == 1) {
+        // possible collision
+        if (state.compare("PLCL") == 0) {
+            cout << "Can not PLCL due to risk of colllision\n";
+        } else {
+            cout << "Can not PLCR due to risk of colllision\n";
+        }
+
+        return NULL_TRAJECTORY_ACTION;
+    }
+
+    TrajectoryAction trajectory;
+
+    if ((ahead_vehicle_s <= PREF_BUFFER) || (ahead_vehicle_s_tgt <= PREF_BUFFER)){
+        // TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::Decelerate, 
+        trajectory = TrajectoryAction(TrajectoryActionSpeed::Decelerate,         
                 TrajectoryActionLaneChange::KeepLane, this->goal_lane);
         trajectory.s = this->s;
         trajectory.goal_s = this->goal_s;
-        trajectory.v = this->v;       
-        return trajectory;
-    } else {
-        TrajectoryActionSpeed speed;
-        double vel;
-        if (this->goal_v >= SPEED_LIMIT) {
-            speed = TrajectoryActionSpeed::Decelerate;
-            vel = this->v - MAX_ACCEL;       
-        } else {
-            speed = TrajectoryActionSpeed::Accelerate;
-            vel = this->v + MAX_ACCEL;       
+        trajectory.v = this->goal_v - MAX_ACCEL;
+
+        if (trajectory.v > tgt_lane_info[1]) {
+            trajectory.v = tgt_lane_info[1] ;
         }
 
-        TrajectoryAction trajectory = TrajectoryAction(speed, TrajectoryActionLaneChange::KeepLane, this->goal_lane);
+        trajectory.state = state ;       
+        trajectory.tgt_lane_dist = (curr_lane_info[0] + tgt_lane_info[0])/2.0;        
+        trajectory.tgt_lane_vel = (curr_lane_info[1] + tgt_lane_info[1])/2.0;        
+        trajectory.tgt_lane_coll = (curr_lane_info[4] + tgt_lane_info[4])/2.0;
+        // return trajectory;
+    } else {
+        TrajectoryActionSpeed speed;
+        double vel = this->goal_v;
+        if ((vel >= SPEED_LIMIT) || (vel > tgt_lane_info[1]) || (vel > curr_lane_info[1])) {
+            speed = TrajectoryActionSpeed::Decelerate;
+            vel = vel - MAX_ACCEL;       
+        } else {
+            speed = TrajectoryActionSpeed::MaintainSpeed;
+        }
+
+        if (vel > tgt_lane_info[1]) {
+            vel = tgt_lane_info[1] ;
+            speed = TrajectoryActionSpeed::Decelerate;
+        }        
+
+
+        // TrajectoryAction trajectory = TrajectoryAction(speed, TrajectoryActionLaneChange::KeepLane, this->goal_lane);
+        trajectory = TrajectoryAction(speed, TrajectoryActionLaneChange::KeepLane, this->goal_lane);        
         trajectory.s = this->s;
         trajectory.goal_s = this->goal_s;
         trajectory.v = vel;       
-
-        return trajectory;
+        trajectory.state = state ;     
+        trajectory.tgt_lane_dist = (curr_lane_info[0] + tgt_lane_info[0])/2.0;        
+        trajectory.tgt_lane_vel = (curr_lane_info[1] + tgt_lane_info[1])/2.0;        
+        trajectory.tgt_lane_coll = (curr_lane_info[4] + tgt_lane_info[4])/2.0;
+        // return trajectory;
     }
+
+    if (state.compare("PLCL") == 0) {
+        cout << "PLCL: Ego.goal_v=" << this->goal_v << " ego_v:" << this->v << " tgt_ln_v=" << trajectory.tgt_lane_vel << " new lane:" << new_lane << "\n";
+    } else {
+        cout << "PLCR: Ego.goal_v=" << this->goal_v << " ego_v:" << this->v << " tgt_ln_v=" << trajectory.tgt_lane_vel << " new lane:" << new_lane << "\n";
+    }
+
+    return trajectory;    
+
 }
 
 TrajectoryAction Vehicle::lane_change_trajectory(string state, map<int, TrajectoryAction> predictions, map<int, vector<double>> traffic_info) {
@@ -376,6 +442,12 @@ TrajectoryAction Vehicle::lane_change_trajectory(string state, map<int, Trajecto
 
     if (tgt_lane_info[5] == 1) {
         // possible collision
+        if (state.compare("LCL") == 0) {
+            cout << "Can not LCL due to risk of colllision\n";
+        } else {
+            cout << "Can not LCR due to risk of colllision\n";
+        }
+
         return NULL_TRAJECTORY_ACTION;
     }
 
@@ -385,13 +457,42 @@ TrajectoryAction Vehicle::lane_change_trajectory(string state, map<int, Trajecto
     } else if (state.compare("LCR") == 0) {
         lc = TrajectoryActionLaneChange::ChangeRight;
     }
+   
+    TrajectoryActionSpeed speed;
+    double vel;
+    if (this->goal_v >= SPEED_LIMIT) {
+        speed = TrajectoryActionSpeed::Decelerate;
+        vel = this->goal_v - MAX_ACCEL;       
+    } else {
+        speed = TrajectoryActionSpeed::MaintainSpeed;
+        vel = this->goal_v ;       
+    }
 
-    TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::MaintainSpeed, 
-            lc, new_lane);
-    
+    if (tgt_lane_info[1] < vel) {
+        vel = tgt_lane_info[1] ;
+        speed = TrajectoryActionSpeed::Decelerate;        
+        cout << "LC Traj vel decreasing to:" << vel << "\n" ;        
+    }
+
+    TrajectoryAction trajectory = TrajectoryAction(speed, lc, new_lane);
+
     trajectory.s = this->s;
     trajectory.goal_s = this->goal_s;
-    trajectory.v = this->v;    
+    trajectory.v = vel;    
+    trajectory.state = state ;       
+    trajectory.tgt_lane_dist = tgt_lane_info[0];        
+    trajectory.tgt_lane_vel = tgt_lane_info[1];        
+    trajectory.tgt_lane_coll = tgt_lane_info[4];
+
+
+    cout << "LC Traj Gen:" << state << "\n" ;
+
+    if (state.compare("LCL") == 0) {
+        cout << "LCL: v=" << trajectory.v << " tgt_ln_v=" << trajectory.tgt_lane_vel << "new lane:" << new_lane << "\n";
+    } else {
+        cout << "LCR: v=" << trajectory.v << " tgt_ln_v=" << trajectory.tgt_lane_vel << "new lane:" << new_lane << "\n";
+    }
+
     return trajectory;
 }
 

@@ -19,7 +19,10 @@ class TrajectoryAction {
     string state;
     int goal_lane = 0; 
     double goal_s;
-    
+    double tgt_lane_vel;
+    double tgt_lane_dist;
+    double tgt_lane_coll;
+
     TrajectoryAction();
     
     TrajectoryAction(TrajectoryActionSpeed spdAct, TrajectoryActionLaneChange cl, int ln);
