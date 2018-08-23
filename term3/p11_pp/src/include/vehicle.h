@@ -18,10 +18,10 @@ class Vehicle {
     static const int PREF_BUFFER = 30; // 6; // impacts "keep lane" behavior.
 
     map<string, int> lane_direction = {
-        {"PLCL", 1},
-        {"LCL", 1},
-        {"LCR", -1},
-        {"PLCR", -1}};
+        {"PLCL", -1},
+        {"LCL", -1},
+        {"LCR", 1},
+        {"PLCR", 1}};
 
     double v;
     double s;

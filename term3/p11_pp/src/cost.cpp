@@ -52,8 +52,10 @@ float goal_distance_cost(const Vehicle & vehicle, const TrajectoryAction & traje
   float cost;
 
   // if ((trajectory.changeLane == TrajectoryActionLaneChange::ChangeLeft) || (trajectory.changeLane == TrajectoryActionLaneChange::ChangeRight)) {
-  if ((trajectory.state.compare("LCL") == 0 ) || (trajectory.state.compare("LCR") == 0 ) || (trajectory.state.compare("PLCL") == 0 ) || (trajectory.state.compare("PLCR") == 0 )) {    
-    cost = 1.10; // 0.10 for reducing velocity by 5m.
+  if ((trajectory.state.compare("LCL") == 0 ) || (trajectory.state.compare("LCR") == 0 )) {    
+    cost = 1.15; // 0.10 for reducing velocity by 5m.
+  } else if ((trajectory.state.compare("PLCL") == 0 ) || (trajectory.state.compare("PLCR") == 0 )) {   
+    cost = 1.10;
   } else {
     cost = 1.0;
   }

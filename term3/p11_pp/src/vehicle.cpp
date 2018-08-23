@@ -80,10 +80,12 @@ void Vehicle::update(double x1, double y1, double vx1, double vy1, double s1,
 }
 
 void Vehicle::updateGoal(double gs, float gd, int ghorizon) {
+    this->d = gd;
     this->goal_d = gd;
     this->goal_s = gs;
     this->goal_horizon = ghorizon;
     this->goal_lane = (int) std::floor(this->goal_d / 4.0);
+    this->lane = this->goal_lane;
 }
 
 void Vehicle::updateGoal(int ghorizon) {
@@ -259,19 +261,6 @@ void Vehicle::realize_next_state(TrajectoryAction trajectory) {
   //this->v = next_state.v;
   //this->a = next_state.a;
 }
-
-//void Vehicle::configure(vector<int> road_data) {
-//  /*
-//  Called by simulator before simulation begins. Sets various
-//  parameters which will impact the ego vehicle. 
-//   */
-//  target_speed = road_data[0];
-//  lanes_available = road_data[1];
-//  goal_s = road_data[2];
-//  goal_lane = road_data[3];
-//  max_acceleration = road_data[4];
-//}
-
 
 double Vehicle::get_s(int frame) {
   double frame_s = this->s + ((double) frame * 0.02 * this->v);
