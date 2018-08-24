@@ -58,7 +58,7 @@ void updateOtherVehicles(map<int, Vehicle> &vehicles, const json &sensor_fusion,
     double yaw = atan2(vy, vx);
     double yaw_rel_lane = yaw - rd_orientation;
 
-    // cout << "id " << id << " x " << x << " y " << y << " vx " << vx << " vy " << vy << " s " << s << " d " << d << "\n";
+    cout << "id " << id << " x " << x << " y " << y << " vx " << vx << " vy " << vy << " s " << s << " d " << d << "\n";
 
     if ((d < 0.0) || (d > 12.0))
     {
@@ -126,6 +126,12 @@ TrajectoryAction Road::choose_ego_next_state(double ego_s, double ego_d, int fra
 
   // cout << "Getting traffic info\n" ;
   map<int, vector<double>> traffic_info = get_traffic_kinematics(vehicles, ego);
+  for (int i = 0; i < Road::NUM_LANES; i++)
+  {
+    vector<double> lane_info = traffic_info[(double)i];
+    cout << "Lane " << i << " fs:" << lane_info[0] << " fv:" << lane_info[1] << " bs:" << lane_info[2] << " bv:" << lane_info[3] << " coll:" << lane_info[4] << "\n";
+  }
+
   // cout << "Got traffic info\n" ;
 
   TrajectoryAction egoAction = this->ego.choose_next_state(predictions, traffic_info, frame);
@@ -190,7 +196,7 @@ void Road::update(const json &jsn)
   this->ego.v = ref_vel;
   this->ego.goal_v = ref_vel;
   this->ego.id = 555;
-  cout << "Ego d = " << car_d << " v=" << this->ego.v << " lane=" << this->ego.lane << "\n";
+  cout << "Ego s = " << car_s << " " << " d = " << car_d << " v=" << this->ego.v << " car_speed:" << car_speed << " lane=" << this->ego.lane << "\n";
 
   // Update other vehicle data
   //  if (this->vehicles.size() <= 0){
@@ -227,7 +233,7 @@ void Road::update(const json &jsn)
       // Still in Lane changing process..
       if (ref_vel < Road::SPEED_LIMIT)
       {
-        ref_vel += Road::MAX_ACCEL; // 5m/sec2
+        ref_vel += Road::MAX_ACCEL; 
       }
       cout << "Ego is in lane:" << (int)car_d / 4 << " d=" << car_d << "\n";
     }
@@ -237,11 +243,11 @@ void Road::update(const json &jsn)
 
       if (ta.speedAction == TrajectoryActionSpeed::Decelerate)
       {
-        ref_vel -= Road::MAX_ACCEL; // 5m/sec2
+        ref_vel -= Road::MAX_ACCEL; 
       }
       else if ((ta.speedAction == TrajectoryActionSpeed::Accelerate) && (ref_vel < SPEED_LIMIT))
       {
-        ref_vel += Road::MAX_ACCEL; // 5m/sec2
+        ref_vel += Road::MAX_ACCEL; 
       }
 
       if (ta.changeLane == TrajectoryActionLaneChange::ChangeLeft)
@@ -267,7 +273,7 @@ void Road::update(const json &jsn)
   {
     if (ref_vel < Road::SPEED_LIMIT)
     {
-      ref_vel += Road::MAX_ACCEL; // 5m/sec2
+      ref_vel += Road::MAX_ACCEL; 
     }
   }
 
@@ -410,10 +416,11 @@ map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles
   double vhcl_s;
   double vhcl_v;
 
-  double lane_nearest_s = MAX_S;
-  double lane_nearest_v = SPEED_LIMIT;
-  double lane_behind_nearest_s = MAX_S;
-  double lane_behind_nearest_v = SPEED_LIMIT;
+  double lane_nearest_s = TrajectoryAction::DIST_LIMIT;
+  double lane_nearest_v = TrajectoryAction::VEL_LIMIT;
+
+  double lane_behind_nearest_s = TrajectoryAction::DIST_LIMIT;
+  double lane_behind_nearest_v = TrajectoryAction::VEL_LIMIT;
   double vehicle_on_tgt_loc = 0; // 0 - false, 1 - true
 
   // cout << "Road::NUM_LANES " << Road::NUM_LANES << "\n" ;

@@ -20,10 +20,10 @@ using json = nlohmann::json;
 class Road
 {
   public:
-    static const int NUM_LANES = 3;
-    static constexpr double SPEED_LIMIT = 49.5;
-    static constexpr double MAX_ACCEL = 0.224; // 5m/sec2
-    static constexpr double MAX_S = 6945.554;    
+    static const int NUM_LANES = Vehicle::NUM_LANES;
+    static constexpr double SPEED_LIMIT = Vehicle::SPEED_LIMIT; 
+    static constexpr double MAX_ACCEL =  Vehicle::MAX_ACCEL;
+    static constexpr double MAX_S = Vehicle::MAX_S;    
     
     // Constructor and destructor
     Road(vector<double> wp_x, vector<double> wp_y, vector<double> wp_s, vector<double> wp_dx, vector<double> wp_dy);

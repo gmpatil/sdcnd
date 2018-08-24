@@ -10,11 +10,12 @@
 using namespace std;
 
 class Vehicle {  
+  // 1 miles = 1609.34 meters
   public:
-    static const int NUM_LANES = 3;    
-    static constexpr double SPEED_LIMIT = 49.5; 
-    static constexpr double MAX_ACCEL = 0.224; // 5m/sec2;
-    static constexpr double MAX_S = 6945.554;
+    static const int NUM_LANES = 3;
+    static constexpr double SPEED_LIMIT = 35; //49.5;
+    static constexpr double MAX_ACCEL =  0.15 ; //0.224; // 5m/sec2
+    static constexpr double MAX_S = 6945.554;  // 4.32 miles      
     static const int PREF_BUFFER = 30; // 6; // impacts "keep lane" behavior.
 
     map<string, int> lane_direction = {
@@ -51,7 +52,7 @@ class Vehicle {
     void updateGoal(double s, float d, int horizon); //for Ego
     void updateGoal(int horizon); // for non-Ego 
 
-    TrajectoryAction choose_next_state(map<int, TrajectoryAction> predictions, map<int, vector<double>>, int horizon); 
+    TrajectoryAction choose_next_state(map<int, TrajectoryAction> &predictions, map<int, vector<double>> &trafficInfo , int horizon); 
 
     vector<string> successor_states();
     

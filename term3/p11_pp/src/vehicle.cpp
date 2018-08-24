@@ -95,7 +95,7 @@ void Vehicle::updateGoal(int ghorizon) {
     this->goal_lane = (int) std::floor(this->goal_d / 4.0);    
 }
 
-TrajectoryAction Vehicle::choose_next_state(map<int, TrajectoryAction> predictions, map<int, vector<double>> traffic_info, int horizon) {
+TrajectoryAction Vehicle::choose_next_state(map<int, TrajectoryAction> &predictions, map<int, vector<double>> &traffic_info, int horizon) {
     /*
     Here you can implement the transition_function code from the Behavior Planning Pseudocode
     classroom concept. Your goal will be to return the best (lowest cost) trajectory corresponding
@@ -324,14 +324,46 @@ TrajectoryAction Vehicle::keep_lane_trajectory(map<int, TrajectoryAction> predic
             vel = this->goal_v  + MAX_ACCEL;       
         }
 
+        double tgt_lane_dist = lane_info[0];
+        double tgt_lane_vel = lane_info[1];
+        double adj_lane_dist = tgt_lane_dist;
+        double adj_lane_vel = tgt_lane_vel;
+
+        int leftLane = this->lane - 1;
+        if (leftLane >= 0) {
+            adj_lane_vel  = traffic_info[leftLane][1];
+            adj_lane_dist  = traffic_info[leftLane][0];
+            // Possible lane change
+            if ((adj_lane_dist < PREF_BUFFER) && (adj_lane_vel < this->v )) {
+                tgt_lane_dist = adj_lane_dist;
+                tgt_lane_vel = adj_lane_vel;
+                speed = TrajectoryActionSpeed::Decelerate;
+                vel = this->goal_v  - MAX_ACCEL;                
+            }
+        }
+
+        int rightLane = this->lane + 1;
+        if (rightLane < NUM_LANES) {
+            adj_lane_vel  = traffic_info[rightLane][1];
+            adj_lane_dist  = traffic_info[rightLane][0];
+
+            // Possible lane change
+            if ((adj_lane_dist < PREF_BUFFER) && (adj_lane_vel < this->v )) {
+                tgt_lane_dist = adj_lane_dist;
+                tgt_lane_vel = adj_lane_vel;
+                speed = TrajectoryActionSpeed::Decelerate;
+                vel = this->goal_v  - MAX_ACCEL;                
+            }
+        }        
+
         TrajectoryAction trajectory = TrajectoryAction(speed, TrajectoryActionLaneChange::KeepLane, this->goal_lane);
         trajectory.s = this->s;
         trajectory.goal_s = this->goal_s;
         trajectory.v = vel;       
         trajectory.state = "KL" ;
 
-        trajectory.tgt_lane_dist = lane_info[0];        
-        trajectory.tgt_lane_vel = lane_info[1];
+        trajectory.tgt_lane_dist = tgt_lane_dist;        
+        trajectory.tgt_lane_vel = tgt_lane_vel ;
         trajectory.tgt_lane_coll = lane_info[4];
 
         cout << "KL: Ego.v=" << this->v << " traj_v=" << trajectory.v << " ttraj.gt_lane_vel=" << trajectory.tgt_lane_vel << "\n";                
@@ -392,6 +424,38 @@ TrajectoryAction Vehicle::prep_lane_change_trajectory(string state, map<int, Tra
         } else {
             speed = TrajectoryActionSpeed::MaintainSpeed;
         }
+
+        double tgt_lane_dist = curr_lane_info[0];
+        double tgt_lane_vel = curr_lane_info[1];
+        double adj_lane_dist = tgt_lane_dist;
+        double adj_lane_vel = tgt_lane_vel;
+
+        int leftLane = this->lane - 1;
+        if (leftLane >= 0) {
+            adj_lane_vel  = traffic_info[leftLane][1];
+            adj_lane_dist  = traffic_info[leftLane][0];
+            // Possible lane change
+            if ((adj_lane_dist < PREF_BUFFER) && (adj_lane_vel < this->v )) {
+                tgt_lane_dist = adj_lane_dist;
+                tgt_lane_vel = adj_lane_vel;
+                speed = TrajectoryActionSpeed::Decelerate;
+                vel = this->goal_v  - MAX_ACCEL;                
+            }
+        }
+
+        int rightLane = this->lane + 1;
+        if (rightLane < NUM_LANES) {
+            adj_lane_vel  = traffic_info[rightLane][1];
+            adj_lane_dist  = traffic_info[rightLane][0];
+
+            // Possible lane change
+            if ((adj_lane_dist < PREF_BUFFER) && (adj_lane_vel < this->v )) {
+                tgt_lane_dist = adj_lane_dist;
+                tgt_lane_vel = adj_lane_vel;
+                speed = TrajectoryActionSpeed::Decelerate;
+                vel = this->goal_v  - MAX_ACCEL;                
+            }
+        }        
 
         if (vel > tgt_lane_info[1]) {
             vel = tgt_lane_info[1] ;

@@ -9,8 +9,12 @@ using namespace std;
 enum class TrajectoryActionSpeed { Accelerate, Decelerate, MaintainSpeed };  
 enum class TrajectoryActionLaneChange { KeepLane, ChangeLeft, ChangeRight };  
 
+
 class TrajectoryAction {  
   public:
+    static constexpr double DIST_LIMIT = 100; 
+    static constexpr double VEL_LIMIT =  45;
+
     TrajectoryActionSpeed speedAction = TrajectoryActionSpeed::Accelerate;
     TrajectoryActionLaneChange changeLane = TrajectoryActionLaneChange::KeepLane;
 
