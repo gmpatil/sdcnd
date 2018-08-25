@@ -162,7 +162,7 @@ vector<string> Vehicle::successor_states() {
   return states;
 }
 
-TrajectoryAction Vehicle::generate_trajectory(string state, map<int, TrajectoryAction> predictions, map<int, vector<double>> traffic_info) {
+TrajectoryAction Vehicle::generate_trajectory(string state, map<int, TrajectoryAction> predictions, map<int, vector<double>> &traffic_info) {
     /*
     Given a possible next state, generate the appropriate trajectory to realize the next state.
     */
@@ -267,7 +267,7 @@ double Vehicle::get_s(int frame) {
   return frame_s;
 }
 
-TrajectoryAction Vehicle::constant_speed_trajectory(map<int, vector<double>> traffic_info) {
+TrajectoryAction Vehicle::constant_speed_trajectory(map<int, vector<double>> &traffic_info) {
     /*
     Generate a constant speed trajectory.
     */
@@ -291,7 +291,7 @@ TrajectoryAction Vehicle::constant_speed_trajectory(map<int, vector<double>> tra
    }
 }
 
-TrajectoryAction Vehicle::keep_lane_trajectory(map<int, TrajectoryAction> predictions, map<int, vector<double>> traffic_info) {
+TrajectoryAction Vehicle::keep_lane_trajectory(map<int, TrajectoryAction> predictions, map<int, vector<double>> &traffic_info) {
     /*
     Generate a keep lane trajectory.
     */
@@ -329,32 +329,32 @@ TrajectoryAction Vehicle::keep_lane_trajectory(map<int, TrajectoryAction> predic
         double adj_lane_dist = tgt_lane_dist;
         double adj_lane_vel = tgt_lane_vel;
 
-        int leftLane = this->lane - 1;
-        if (leftLane >= 0) {
-            adj_lane_vel  = traffic_info[leftLane][1];
-            adj_lane_dist  = traffic_info[leftLane][0];
-            // Possible lane change
-            if ((adj_lane_dist < PREF_BUFFER) && (adj_lane_vel < this->v )) {
-                tgt_lane_dist = adj_lane_dist;
-                tgt_lane_vel = adj_lane_vel;
-                speed = TrajectoryActionSpeed::Decelerate;
-                vel = this->goal_v  - MAX_ACCEL;                
-            }
-        }
+        // int leftLane = this->lane - 1;
+        // if (leftLane >= 0) {
+        //     adj_lane_vel  = traffic_info[leftLane][1];
+        //     adj_lane_dist  = traffic_info[leftLane][0];
+        //     // Possible lane change
+        //     if ((adj_lane_dist < PREF_BUFFER) && (adj_lane_vel < this->v )) {
+        //         tgt_lane_dist = adj_lane_dist;
+        //         tgt_lane_vel = adj_lane_vel;
+        //         speed = TrajectoryActionSpeed::Decelerate;
+        //         vel = this->goal_v  - MAX_ACCEL;                
+        //     }
+        // }
 
-        int rightLane = this->lane + 1;
-        if (rightLane < NUM_LANES) {
-            adj_lane_vel  = traffic_info[rightLane][1];
-            adj_lane_dist  = traffic_info[rightLane][0];
+        // int rightLane = this->lane + 1;
+        // if (rightLane < NUM_LANES) {
+        //     adj_lane_vel  = traffic_info[rightLane][1];
+        //     adj_lane_dist  = traffic_info[rightLane][0];
 
-            // Possible lane change
-            if ((adj_lane_dist < PREF_BUFFER) && (adj_lane_vel < this->v )) {
-                tgt_lane_dist = adj_lane_dist;
-                tgt_lane_vel = adj_lane_vel;
-                speed = TrajectoryActionSpeed::Decelerate;
-                vel = this->goal_v  - MAX_ACCEL;                
-            }
-        }        
+        //     // Possible lane change
+        //     if ((adj_lane_dist < PREF_BUFFER) && (adj_lane_vel < this->v )) {
+        //         tgt_lane_dist = adj_lane_dist;
+        //         tgt_lane_vel = adj_lane_vel;
+        //         speed = TrajectoryActionSpeed::Decelerate;
+        //         vel = this->goal_v  - MAX_ACCEL;                
+        //     }
+        // }        
 
         TrajectoryAction trajectory = TrajectoryAction(speed, TrajectoryActionLaneChange::KeepLane, this->goal_lane);
         trajectory.s = this->s;
@@ -371,10 +371,16 @@ TrajectoryAction Vehicle::keep_lane_trajectory(map<int, TrajectoryAction> predic
    }
 }
 
-TrajectoryAction Vehicle::prep_lane_change_trajectory(string state, map<int, TrajectoryAction> predictions, map<int, vector<double>> traffic_info) {
+TrajectoryAction Vehicle::prep_lane_change_trajectory(string state, map<int, TrajectoryAction> predictions, map<int, vector<double>> &traffic_info) {
     /*
     Generate a trajectory preparing for a lane change.
     */
+
+    // for (int i = 0; i < NUM_LANES; i++)
+    // {
+    //     vector<double> lane_info = traffic_info[(double)i];
+    //     cout << "Lane " << i << " fs:" << lane_info[0] << " fv:" << lane_info[1] << " bs:" << lane_info[2] << " bv:" << lane_info[3] << " coll:" << lane_info[4] << "\n";
+    // }
 
     int new_lane = this->lane + lane_direction[state];
 
@@ -485,7 +491,7 @@ TrajectoryAction Vehicle::prep_lane_change_trajectory(string state, map<int, Tra
 
 }
 
-TrajectoryAction Vehicle::lane_change_trajectory(string state, map<int, TrajectoryAction> predictions, map<int, vector<double>> traffic_info) {
+TrajectoryAction Vehicle::lane_change_trajectory(string state, map<int, TrajectoryAction> predictions, map<int, vector<double>> &traffic_info) {
     /*
     Generate a lane change trajectory.
     */

@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 #include <iterator>
+#include "spline.h"
 
 using namespace std;
 
@@ -43,5 +44,25 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s,
 
 double road_orientation(double s, const vector<double> &maps_s,
         const vector<double> &maps_x, const vector<double> &maps_y);
+
+
+class MapUtil {  
+  public:
+    static tk::spline spline_s_x;
+    static tk::spline spline_s_y;
+    static tk::spline spline_s_dx;
+    static tk::spline spline_s_dy;            
+
+    // Constructors
+    MapUtil();
+
+    //Destructor
+    virtual ~MapUtil();
+
+    void init_static(const vector<double> &maps_s, const vector<double> &maps_x,
+     const vector<double> &maps_y, const vector<double> &maps_dx, const vector<double> &maps_dy);
+
+    vector<double> getXY_spline(double s, double d);
+};        
 
 #endif /* UTILS_H */

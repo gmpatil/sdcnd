@@ -11,9 +11,9 @@
 #include <map>
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
-//#include "include/json.hpp"
 #include "include/vehicle.h"
 #include "include/road.h"
+#include "include/utils.h"
 
 using namespace std;
 // for convenience
@@ -73,7 +73,9 @@ int main() {
     map_waypoints_dy.push_back(d_y);
   }
 
-
+  MapUtil mu;
+  mu.init_static(map_waypoints_s, map_waypoints_x, map_waypoints_y, map_waypoints_dx, map_waypoints_dy);
+  
   int lane = 1;
   double ref_vel = 0.0; // 49.50;
 

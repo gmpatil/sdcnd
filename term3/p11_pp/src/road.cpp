@@ -58,7 +58,7 @@ void updateOtherVehicles(map<int, Vehicle> &vehicles, const json &sensor_fusion,
     double yaw = atan2(vy, vx);
     double yaw_rel_lane = yaw - rd_orientation;
 
-    cout << "id " << id << " x " << x << " y " << y << " vx " << vx << " vy " << vy << " s " << s << " d " << d << "\n";
+    // cout << "id " << id << " x " << x << " y " << y << " vx " << vx << " vy " << vy << " s " << s << " d " << d << "\n";
 
     if ((d < 0.0) || (d > 12.0))
     {
@@ -126,11 +126,11 @@ TrajectoryAction Road::choose_ego_next_state(double ego_s, double ego_d, int fra
 
   // cout << "Getting traffic info\n" ;
   map<int, vector<double>> traffic_info = get_traffic_kinematics(vehicles, ego);
-  for (int i = 0; i < Road::NUM_LANES; i++)
-  {
-    vector<double> lane_info = traffic_info[(double)i];
-    cout << "Lane " << i << " fs:" << lane_info[0] << " fv:" << lane_info[1] << " bs:" << lane_info[2] << " bv:" << lane_info[3] << " coll:" << lane_info[4] << "\n";
-  }
+  // for (int i = 0; i < Road::NUM_LANES; i++)
+  // {
+  //   vector<double> lane_info = traffic_info[(double)i];
+  //   cout << "Lane " << i << " fs:" << lane_info[0] << " fv:" << lane_info[1] << " bs:" << lane_info[2] << " bv:" << lane_info[3] << " coll:" << lane_info[4] << "\n";
+  // }
 
   // cout << "Got traffic info\n" ;
 
@@ -231,10 +231,10 @@ void Road::update(const json &jsn)
     if (lane != this->ego.lane)
     {
       // Still in Lane changing process..
-      if (ref_vel < Road::SPEED_LIMIT)
-      {
-        ref_vel += Road::MAX_ACCEL; 
-      }
+      // if (ref_vel < Road::SPEED_LIMIT)
+      // {
+        //ref_vel -= Road::MAX_ACCEL; 
+      // }
       cout << "Ego is in lane:" << (int)car_d / 4 << " d=" << car_d << "\n";
     }
     else
@@ -255,6 +255,7 @@ void Road::update(const json &jsn)
         if (lane > 0)
         {
           lane--;
+          cout << " Changing lane to " << lane << "\n" ;
         }
       }
       else if (ta.changeLane == TrajectoryActionLaneChange::ChangeRight)
@@ -266,7 +267,7 @@ void Road::update(const json &jsn)
       }
 
       this->ego.state = ta.state;
-      cout << "Ego state changed to " << this->ego.state << "\n";
+      cout << "Ego state changed to " << this->ego.state << " lane " << lane << "\n";
     }
   }
   else
@@ -354,13 +355,6 @@ void Road::update(const json &jsn)
   // cout << " ptsxy after car reference" << "\n" ;
   // printPts (ptsx, ptsy);
 
-  // create spline, reference to the Car co-ordinate
-  tk::spline spln;
-
-  // printPts (ptsx, ptsy);
-
-  spln.set_points(ptsx, ptsy); //ptsx and ptsy now have co-ordinate relative to the car.
-
   //previous path points
   for (int i = 0; i < previous_path_x.size(); i++)
   {
@@ -368,20 +362,42 @@ void Road::update(const json &jsn)
     next_y_vals.push_back(previous_path_y[i]);
   }
 
-  double target_x = 30.0;
-  double target_y = spln(target_x);
-  double target_dist = sqrt((target_x * target_x) + (target_y * target_y));
+  // create spline, reference to the Car co-ordinate
+  tk::spline spln;
 
-  double N = (target_dist / (0.02 * ref_vel)); //( x miles/hr / 2.24) = mts per sec  // (0.02 * ref_vel / 2.24)
-  double delta = (target_x) / N;
+  // printPts (ptsx, ptsy);
+
+  spln.set_points(ptsx, ptsy); //ptsx and ptsy now have co-ordinate relative to the car.
+
+  // double target_x = 30.0;
+  // double target_y = spln(target_x);
+  // double target_dist = sqrt((target_x * target_x) + (target_y * target_y));
+  // double N = (target_dist / (0.02 * ref_vel)); //( x miles/hr / 2.24) = mts per sec  // (0.02 * ref_vel / 2.24)
+  // double delta = (target_x) / N;
   //printf("N =  %f\nDelta = %f\n", N, delta);
+
+  vector<double> carXY;
+  vector<double> carXYShifted;
+  MapUtil mu;
+
+  double curr_car_s = car_s ;
+  double delta = (0.02 * ref_vel);
 
   double x_ref = 0;
   double y_ref = 0;
+
   // fill up the rest of the path
   for (int i = 1; i <= 50 - previous_path_x.size(); i++)
   {
-    x_ref += delta;
+    // x_ref += delta;
+    curr_car_s += delta;
+    //carXY = getXY(curr_car_s, (2 + 4 * lane), this->_wp_s, this->_wp_x, this->_wp_y);
+    carXY = mu.getXY_spline(curr_car_s, (2 + 4 * lane));
+
+    double shift_x = carXY[0] - car_x_calc;
+    double shift_y = carXY[1] - car_y_calc;
+    x_ref = (shift_x * cos(0 - ref_yaw) - shift_y * sin(0 - ref_yaw));
+
     y_ref = spln(x_ref); //y_point;
 
     // rotate back to normal/global co-ordinates

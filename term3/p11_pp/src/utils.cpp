@@ -4,6 +4,7 @@
 #include <iterator>
 #include <vector>
 #include "include/utils.h"
+#include "include/spline.h"
 
 double deg2rad(double x) {
   return x * pi() / 180;
@@ -146,4 +147,52 @@ double road_orientation(double s, const vector<double> &maps_s,
   auto dx = xy2[0] - xy1[0];
   auto dy = xy2[1] - xy1[1];
   return atan2(dy, dx);
+}
+
+/**
+ * Initializes MapUtil
+ */
+    
+MapUtil::MapUtil() { }
+
+MapUtil::~MapUtil() { }
+
+tk::spline MapUtil::spline_s_x;
+tk::spline MapUtil::spline_s_y;
+tk::spline MapUtil::spline_s_dx;
+tk::spline MapUtil::spline_s_dy;   
+
+void MapUtil::init_static(const vector<double> &maps_s, const vector<double> &maps_x,
+  const vector<double> &maps_y, const vector<double> &maps_dx, const vector<double> &maps_dy){
+    vector<double> mapv_s;    
+    vector<double> mapv_x;
+    vector<double> mapv_y;
+    vector<double> mapv_dx;
+    vector<double> mapv_dy;
+
+
+  for (int i = 0; i < maps_x.size(); i++) {
+    mapv_s.push_back(maps_s[i]);    
+    mapv_x.push_back(maps_x[i]);
+    mapv_y.push_back(maps_y[i]);
+    mapv_dx.push_back(maps_dx[i]);
+    mapv_dy.push_back(maps_dy[i]);
+  }
+   
+  spline_s_x.set_points(mapv_s, mapv_x);
+  spline_s_y.set_points(mapv_s, mapv_y);
+  spline_s_dx.set_points(mapv_s, mapv_dx);
+  spline_s_dy.set_points(mapv_s, mapv_dy);
+
+}
+
+vector<double> MapUtil::getXY_spline(double s, double d){
+  vector<double> xy;
+  double x = spline_s_x(s) + d * spline_s_dx(s);
+  double y = spline_s_y(s) + d * spline_s_dy(s);
+  
+  xy.push_back(x);
+  xy.push_back(y);
+
+  return xy;
 }
