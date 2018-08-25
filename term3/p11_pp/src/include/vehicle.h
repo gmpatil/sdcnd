@@ -13,8 +13,8 @@ class Vehicle {
   // 1 miles = 1609.34 meters
   public:
     static const int NUM_LANES = 3;
-    static constexpr double SPEED_LIMIT = 35; //49.5;
-    static constexpr double MAX_ACCEL =  0.15 ; //0.224; // 5m/sec2
+    static constexpr double SPEED_LIMIT = 20; // m/sec 49.5miles/hour * 0.447 ==  20m/sec ;
+    static constexpr double MAX_ACCEL =  0.244 ; //5m/sec/sec 
     static constexpr double MAX_S = 6945.554;  // 4.32 miles      
     static const int PREF_BUFFER = 30; // 6; // impacts "keep lane" behavior.
 

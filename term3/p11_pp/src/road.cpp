@@ -193,8 +193,8 @@ void Road::update(const json &jsn)
   int prev_size = previous_path_x.size();
 
   this->ego.update(car_x, car_y, 0, 0, car_s, car_d, car_yaw, 0);
-  this->ego.v = ref_vel;
-  this->ego.goal_v = ref_vel;
+  this->ego.v = ref_vel; // in m/sec.  if miles/hour ref_vel * * 0.4470388889 = m/sec // (1609.34 meters/mile)/(3600 secs) = 0.4470388889   or (1/2.2369418519)
+  this->ego.goal_v = this->ego.v;
   this->ego.id = 555;
   cout << "Ego s = " << car_s << " " << " d = " << car_d << " v=" << this->ego.v << " car_speed:" << car_speed << " lane=" << this->ego.lane << "\n";
 
@@ -372,7 +372,7 @@ void Road::update(const json &jsn)
   double target_y = spln(target_x);
   double target_dist = sqrt((target_x * target_x) + (target_y * target_y));
 
-  double N = (target_dist / (0.02 * ref_vel / 2.24)); //mts per sec
+  double N = (target_dist / (0.02 * ref_vel)); //( x miles/hr / 2.24) = mts per sec  // (0.02 * ref_vel / 2.24)
   double delta = (target_x) / N;
   //printf("N =  %f\nDelta = %f\n", N, delta);
 
