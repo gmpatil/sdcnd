@@ -46,6 +46,11 @@ void updateOtherVehicles(map<int, Vehicle> &vehicles, const json &sensor_fusion,
                          double rd_orientation, int horizon)
 {
 
+  // reset the flags
+  for (auto& obj: vehicles) {
+    obj.second.updated = false; 
+  }
+
   for (unsigned int i = 0; i < sensor_fusion.size(); i++)
   {
     int id = sensor_fusion[i][0];
@@ -70,15 +75,15 @@ void updateOtherVehicles(map<int, Vehicle> &vehicles, const json &sensor_fusion,
     std::map<int, Vehicle>::iterator it = vehicles.find(id);
     if (it == vehicles.end())
     {
-      Vehicle newV(id, x, y, vx, vy, s, d, yaw, yaw_rel_lane);
+      Vehicle *newV = new Vehicle(id, x, y, vx, vy, s, d, yaw, yaw_rel_lane);
       //cout << "v.lane = " << newV.lane << "\n" ;
 
       if (horizon > 1)
       {
-        newV.updateGoal(horizon);
+        newV->updateGoal(horizon);
       }
 
-      vehicles.insert(std::pair<int, Vehicle>(id, newV));
+      vehicles.insert(std::pair<int, Vehicle>(id, *newV));
 
       // printf("Not found %d\n", id);
     }
@@ -88,6 +93,7 @@ void updateOtherVehicles(map<int, Vehicle> &vehicles, const json &sensor_fusion,
       // cout << "update d = " << d << "\n" ;
       //Vehicle v = it->second;
       it->second.update(x, y, vx, vy, s, d, yaw, yaw_rel_lane);
+      it->second.updated = true;
       // cout << "v.lane = " << v.lane << "\n" ;
 
       if (horizon > 1)
@@ -98,6 +104,15 @@ void updateOtherVehicles(map<int, Vehicle> &vehicles, const json &sensor_fusion,
       // printf("Found %d\n", id) ;
     }
   }
+
+  for (auto& obj: vehicles) {
+    if (!obj.second.updated) {
+      int id = obj.first ;
+      delete &(obj.second) ;
+      vehicles.erase (id); 
+    }
+  }
+
 }
 
 /**
@@ -323,17 +338,31 @@ void Road::update(const json &jsn)
     // printPts (ptsx, ptsy);
   }
 
+//  MapUtil mu;
+
   // add 3 more forward way points. Use Frenet.
+  
+  // vector<double> next_wp = mu.getXY_spline(car_s + 30, (2 + 4 * lane));  
   vector<double> next_wp = getXY(car_s + 30, (2 + 4 * lane),
                                  this->_wp_s, this->_wp_x, this->_wp_y);
   ptsx.push_back(next_wp[0]);
   ptsy.push_back(next_wp[1]);
 
+  // vector<double> next_wp1a = mu.getXY_spline(car_s + 45, (2 + 4 * lane));  
+  // ptsx.push_back(next_wp1a[0]);
+  // ptsy.push_back(next_wp1a[1]);
+
+  // vector<double> next_wp2 = mu.getXY_spline(car_s + 60, (2 + 4 * lane));
   vector<double> next_wp2 = getXY(car_s + 60, (2 + 4 * lane),
                                   this->_wp_s, this->_wp_x, this->_wp_y);
   ptsx.push_back(next_wp2[0]);
   ptsy.push_back(next_wp2[1]);
 
+  // vector<double> next_wp3a = mu.getXY_spline(car_s + 75, (2 + 4 * lane));  
+  // ptsx.push_back(next_wp3a[0]);
+  // ptsy.push_back(next_wp3a[1]);
+
+  // vector<double> next_wp3 = mu.getXY_spline(car_s + 90, (2 + 4 * lane));
   vector<double> next_wp3 = getXY(car_s + 90, (2 + 4 * lane),
                                   this->_wp_s, this->_wp_x, this->_wp_y);
   ptsx.push_back(next_wp3[0]);
@@ -369,19 +398,18 @@ void Road::update(const json &jsn)
 
   spln.set_points(ptsx, ptsy); //ptsx and ptsy now have co-ordinate relative to the car.
 
-  // double target_x = 30.0;
-  // double target_y = spln(target_x);
-  // double target_dist = sqrt((target_x * target_x) + (target_y * target_y));
-  // double N = (target_dist / (0.02 * ref_vel)); //( x miles/hr / 2.24) = mts per sec  // (0.02 * ref_vel / 2.24)
-  // double delta = (target_x) / N;
+  double target_x = 30.0;
+  double target_y = spln(target_x);
+  double target_dist = sqrt((target_x * target_x) + (target_y * target_y));
+  double N = (target_dist / (0.02 * ref_vel)); //( x miles/hr / 2.24) = mts per sec  // (0.02 * ref_vel / 2.24)
+  double delta = (target_x) / N;
   //printf("N =  %f\nDelta = %f\n", N, delta);
 
-  vector<double> carXY;
-  vector<double> carXYShifted;
-  MapUtil mu;
+  // vector<double> carXY;
+  // vector<double> carXYShifted;
 
-  double curr_car_s = car_s ;
-  double delta = (0.02 * ref_vel);
+  // double curr_car_s = car_s ;
+  // double delta = (0.02 * ref_vel);
 
   double x_ref = 0;
   double y_ref = 0;
@@ -389,18 +417,22 @@ void Road::update(const json &jsn)
   // fill up the rest of the path
   for (int i = 1; i <= 50 - previous_path_x.size(); i++)
   {
-    // x_ref += delta;
-    curr_car_s += delta;
-    //carXY = getXY(curr_car_s, (2 + 4 * lane), this->_wp_s, this->_wp_x, this->_wp_y);
-    carXY = mu.getXY_spline(curr_car_s, (2 + 4 * lane));
-
-    double shift_x = carXY[0] - car_x_calc;
-    double shift_y = carXY[1] - car_y_calc;
-    x_ref = (shift_x * cos(0 - ref_yaw) - shift_y * sin(0 - ref_yaw));
+    x_ref += delta;
+    // curr_car_s += delta;
+    // carXY = getXY(curr_car_s, (2 + 4 * lane), this->_wp_s, this->_wp_x, this->_wp_y);
+    // carXY = mu.getXY_spline(curr_car_s, (2 + 4 * lane));
+    // double shift_x = carXY[0] - car_x_calc;
+    // double shift_y = carXY[1] - car_y_calc;
+    // x_ref = (shift_x * cos(0 - ref_yaw) - shift_y * sin(0 - ref_yaw));
 
     y_ref = spln(x_ref); //y_point;
+    // y_ref = spln(carXY[0]) ;
+    // next_x_vals.push_back(carXY[0]);
+    // next_x_vals.push_back(x_ref);
+    // next_y_vals.push_back(y_ref);
 
-    // rotate back to normal/global co-ordinates
+
+    // // rotate back to normal/global co-ordinates
     double x_point = (x_ref * cos(ref_yaw) - y_ref * sin(ref_yaw));
     double y_point = (x_ref * sin(ref_yaw) + y_ref * cos(ref_yaw));
     x_point += car_x_calc;
@@ -420,8 +452,10 @@ map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles
   cout << "In Road::get_traffic_kinematics\n";
 
   map<int, vector<double>> lane_traffic;
+  map<int, vector<double>> lane_traffic_curr;
 
-  double ego_s = ego.goal_s;
+  double ego_goal_s = ego.goal_s;
+  double ego_s = ego.s;
   double ego_v = ego.v;
   int ego_lane = ego.goal_lane;
   int horizon = ego.goal_horizon;
@@ -430,12 +464,15 @@ map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles
   int v_id;
   int vhcl_lane;
   double vhcl_s;
+  double vhcl_goal_s;
   double vhcl_v;
 
   double lane_nearest_s = TrajectoryAction::DIST_LIMIT;
+  double lane_nearest_s_curr = TrajectoryAction::DIST_LIMIT;
   double lane_nearest_v = TrajectoryAction::VEL_LIMIT;
 
   double lane_behind_nearest_s = TrajectoryAction::DIST_LIMIT;
+  double lane_behind_nearest_s_curr = TrajectoryAction::DIST_LIMIT;  
   double lane_behind_nearest_v = TrajectoryAction::VEL_LIMIT;
   double vehicle_on_tgt_loc = 0; // 0 - false, 1 - true
 
@@ -447,16 +484,20 @@ map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles
     // cout << "initialized I = " << i << "\n";
 
     vector<double> lane_info = {lane_nearest_s, lane_nearest_v, lane_behind_nearest_s, lane_behind_nearest_v, vehicle_on_tgt_loc};
-    lane_traffic[(double)i] = lane_info;
+    lane_traffic[i] = lane_info;
     //lane_traffic.insert(std::pair<int,vector<double>>(i, lane_info));
+
+    vector<double> lane_info_curr = {lane_nearest_s_curr, lane_behind_nearest_s_curr};
+    lane_traffic_curr[i] = lane_info_curr;
   }
 
   // cout << "In Road::get_traffic_kinematics, initialized the map\n" ;
 
   cout << "Ego "
-       << " lane=" << ego_lane << " s=" << ego.s << " goal_s=" << ego_s << " v=" << ego_v << "\n";
+       << " lane=" << ego_lane << " s=" << ego.s << " goal_s=" << ego_goal_s << " v=" << ego_v << "\n";
 
   vector<double> *lane_info;
+  vector<double> *lane_info_curr;  
 
   map<int, Vehicle>::iterator it = vehicles.begin();
   while (it != vehicles.end())
@@ -468,38 +509,133 @@ map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles
     if (v_id != ego_id)
     {
       Vehicle vhcl = it->second;
-      vhcl_s = vhcl.goal_s;
+      vhcl_s = vhcl.s;
+      vhcl_goal_s = vhcl.goal_s;
       vhcl_v = vhcl.v;
       vhcl_lane = vhcl.lane;
-      // cout << "Vhcl[" << v_id << "]" << " s=" << vhcl.s << " goal_s=" << vhcl_s << " v=" << vhcl_v << " lane=" << vhcl_lane << "\n" ;
+      // cout << "Vhcl[" << v_id << "]" << " s=" << vhcl.s << " goal_s=" << vhcl_goal_s << " v=" << vhcl_v << " lane=" << vhcl_lane << "\n" ;
 
       lane_info = &lane_traffic[vhcl_lane];
+      lane_info_curr = &lane_traffic_curr[vhcl_lane];
       // cout << "lane_info size " << lane_info.size() << "\n" ;
 
-      if (vhcl_s > ego_s)
+      // Predicted distcances
+      if (vhcl_goal_s > ego_goal_s)
       {
-        // cout << "veh_S > ego_s" << "\n" ;
-        if (lane_info->at(0) > (vhcl_s - ego_s))
+        // Vehicle is infront        
+        // cout << "veh_S > ego_goal_s" << "\n" ;
+        if (lane_info->at(0) > (vhcl_goal_s - ego_goal_s))
         {
-          // cout << "front, new closest " << vhcl.id << " dist " << (vhcl_s - ego_s) << " vel " << vhcl_v << "\n" ;
-          lane_info->at(0) = vhcl_s - ego_s;
+          // cout << "front, new closest " << vhcl.id << " dist " << (vhcl_goal_s - ego_goal_s) << " vel " << vhcl_v << "\n" ;
+          lane_info->at(0) = vhcl_goal_s - ego_goal_s;
           lane_info->at(1) = vhcl_v;
+
+          // Less than 2 sec time gap from front vehicles in current and target lanes, from predicted positions.
+          // Less than  minimum meters gap from front vehicles in current and target lanes, from predicted positions.
+          if (abs(lane_info->at(0)) <= Road::PREF_BUFFER)
+          {
+            cout << "possible collision if in lane " << vhcl_lane << "\n";
+            lane_info->at(4) = (double)1; // possible collision
+          }          
+
+          double time_gap = abs(lane_info->at(0)/ego_v) ;
+          if (time_gap > Road::MIN_TIME_GAP){
+            lane_info->at(4) = (double)1; // possible collision
+          }
         }
 
-        if (abs(vhcl_s - ego_s) <= (double)30.0)
+        if (ego_v > vhcl_v) 
         {
-          cout << "possible collision if in lane " << vhcl_lane << "\n";
-          lane_info->at(4) = (double)1; // possible collision
+          double v_diff = ego_v - vhcl_v;
+          double time_gap = abs((vhcl_goal_s - ego_goal_s)/v_diff) ;
+          if (time_gap > Road::MIN_TIME_GAP){
+            lane_info->at(4) = (double)1; // possible collision
+          }
         }
       }
       else
       {
-        // cout << "veh_S <= ego_s, vhcl_lane = " << vhcl_lane << " lane_traffic_sz =" << lane_traffic.size() << "\n" ;
-        if (lane_info->at(2) > (ego_s - vhcl_s))
+        // Vehicle is behind
+        // cout << "veh_S <= ego_goal_s, vhcl_lane = " << vhcl_lane << " lane_traffic_sz =" << lane_traffic.size() << "\n" ;
+        if (lane_info->at(2) > (ego_goal_s - vhcl_goal_s))
         {
-          // cout << "behind, new closest" << vhcl.id << " dist " << (ego_s - vhcl_s) << " vel " << vhcl_v << "\n" ;
-          lane_info->at(2) = ego_s - vhcl_s;
+          // cout << "behind, new closest" << vhcl.id << " dist " << (ego_goal_s - vhcl_goal_s) << " vel " << vhcl_v << "\n" ;
+          lane_info->at(2) = ego_goal_s - vhcl_goal_s;
           lane_info->at(3) = vhcl_v;
+
+          // Less than 2 sec time gap from front vehicles in current and target lanes, from predicted positions.
+          // Less than  minimum meters gap from front vehicles in current and target lanes, from predicted positions.
+          if ((abs(lane_info->at(2)) <= Road::PREF_BUFFER) && (ego_lane != vhcl_lane))
+          {
+            cout << "possible collision if lane change" << vhcl_lane << "\n";
+            lane_info->at(4) = (double)1; // possible collision
+          }          
+
+          double time_gap = abs(lane_info->at(0)/ego_v) ;
+          if ((time_gap > Road::MIN_TIME_GAP) && (ego_lane != vhcl_lane))
+          {
+            cout << "possible collision if lane change" << vhcl_lane << "\n";            
+            lane_info->at(4) = (double)1; // possible collision
+          }          
+        }
+      }
+
+      //Curr distance
+      if (vhcl_s > ego_s)
+      {
+        // Vehicle is infront
+        // cout << "veh_S > ego_goal_s" << "\n" ;
+        if (lane_info_curr->at(0) > (vhcl_s - ego_s))
+        {
+          // cout << "front, new closest " << vhcl.id << " dist " << (vhcl_goal_s - ego_goal_s) << " vel " << vhcl_v << "\n" ;
+          lane_info_curr->at(0) = vhcl_s - ego_s;
+
+          // Less than 2 sec time gap from front vehicles in current and target lanes, from predicted positions.
+          // Less than  minimum meters gap from front vehicles in current and target lanes, from predicted positions.
+          if (abs(lane_info_curr->at(0)) <= Road::PREF_BUFFER)
+          {
+            cout << "possible collision if in lane " << vhcl_lane << "\n";
+            lane_info->at(4) = (double)1; // possible collision
+          }          
+
+          double time_gap = abs(lane_info_curr->at(0)/ego_v) ;
+          if (time_gap > Road::MIN_TIME_GAP){
+            lane_info->at(4) = (double)1; // possible collision
+          }
+        }
+
+        if (ego_v > vhcl_v) 
+        {
+          double v_diff = ego_v - vhcl_v;
+          double time_gap = abs((vhcl_s - ego_s)/v_diff) ;
+          if (time_gap > Road::MIN_TIME_GAP){
+            lane_info->at(4) = (double)1; // possible collision
+          }
+        }        
+      }
+      else
+      {
+        // Vehicle is behind
+        // cout << "veh_S <= ego_goal_s, vhcl_lane = " << vhcl_lane << " lane_traffic_sz =" << lane_traffic.size() << "\n" ;
+        if (lane_info_curr->at(1) > (ego_s - vhcl_s))
+        {
+          // cout << "behind, new closest" << vhcl.id << " dist " << (ego_goal_s - vhcl_goal_s) << " vel " << vhcl_v << "\n" ;
+          lane_info_curr->at(1) = ego_s - vhcl_s;
+
+          // Less than 2 sec time gap from front vehicles in current and target lanes, from predicted positions.
+          // Less than  minimum meters gap from front vehicles in current and target lanes, from predicted positions.
+          if ((abs(lane_info_curr->at(1)) <= Road::PREF_BUFFER) && (ego_lane != vhcl_lane))
+          {
+            cout << "possible collision if lane change" << vhcl_lane << "\n";
+            lane_info->at(4) = (double)1; // possible collision
+          }          
+
+          double time_gap = abs(lane_info_curr->at(1)/ego_v) ;
+          if ((time_gap > Road::MIN_TIME_GAP) && (ego_lane != vhcl_lane))
+          {
+            cout << "possible collision if lane change" << vhcl_lane << "\n";            
+            lane_info->at(4) = (double)1; // possible collision
+          }   
         }
       }
     }

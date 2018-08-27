@@ -24,6 +24,10 @@ class Road
     static constexpr double SPEED_LIMIT = Vehicle::SPEED_LIMIT; 
     static constexpr double MAX_ACCEL =  Vehicle::MAX_ACCEL;
     static constexpr double MAX_S = Vehicle::MAX_S;    
+    static const int PREF_BUFFER = Vehicle::PREF_BUFFER; // in meters.
+    static constexpr double TARGET_LANE_SPEED_RATIO = 1.10; // 10% more than Ego's    
+    static constexpr double MIN_TIME_GAP = 2; // 2 secs
+
     
     // Constructor and destructor
     Road(vector<double> wp_x, vector<double> wp_y, vector<double> wp_s, vector<double> wp_dx, vector<double> wp_dy);

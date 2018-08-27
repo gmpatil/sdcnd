@@ -170,20 +170,39 @@ void MapUtil::init_static(const vector<double> &maps_s, const vector<double> &ma
     vector<double> mapv_dx;
     vector<double> mapv_dy;
 
+    double end_conn_dist_x = maps_x[0] - maps_x[maps_s.size() - 1];
+    double end_conn_dist_y = maps_y[0] - maps_y[maps_s.size() - 1];
+    double end_conn_dist = sqrt(end_conn_dist_x * end_conn_dist_x + end_conn_dist_y * end_conn_dist_y);    
 
-  for (int i = 0; i < maps_x.size(); i++) {
-    mapv_s.push_back(maps_s[i]);    
-    mapv_x.push_back(maps_x[i]);
-    mapv_y.push_back(maps_y[i]);
-    mapv_dx.push_back(maps_dx[i]);
-    mapv_dy.push_back(maps_dy[i]);
-  }
-   
-  spline_s_x.set_points(mapv_s, mapv_x);
-  spline_s_y.set_points(mapv_s, mapv_y);
-  spline_s_dx.set_points(mapv_s, mapv_dx);
-  spline_s_dy.set_points(mapv_s, mapv_dy);
+    double track_dist = maps_s[maps_s.size() - 1] - maps_s[0] + end_conn_dist ;
+    for(int i : {maps_s.size() - 2, maps_s.size() - 1}) {
+      mapv_s.push_back(maps_s[i] - track_dist);    
+      mapv_x.push_back(maps_x[i]);
+      mapv_y.push_back(maps_y[i]);
+      mapv_dx.push_back(maps_dx[i]);
+      mapv_dy.push_back(maps_dy[i]);
+    }
 
+    for (int i = 0; i < maps_x.size(); i++) {
+      mapv_s.push_back(maps_s[i]);    
+      mapv_x.push_back(maps_x[i]);
+      mapv_y.push_back(maps_y[i]);
+      mapv_dx.push_back(maps_dx[i]);
+      mapv_dy.push_back(maps_dy[i]);
+    }
+
+    for(int i : {0, 1}) {
+      mapv_s.push_back(maps_s[i] + track_dist);    
+      mapv_x.push_back(maps_x[i]);
+      mapv_y.push_back(maps_y[i]);
+      mapv_dx.push_back(maps_dx[i]);
+      mapv_dy.push_back(maps_dy[i]);
+    }
+
+    spline_s_x.set_points(mapv_s, mapv_x);
+    spline_s_y.set_points(mapv_s, mapv_y);
+    spline_s_dx.set_points(mapv_s, mapv_dx);
+    spline_s_dy.set_points(mapv_s, mapv_dy);
 }
 
 vector<double> MapUtil::getXY_spline(double s, double d){
