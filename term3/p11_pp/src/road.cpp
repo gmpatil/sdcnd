@@ -29,13 +29,42 @@ void printVhcl(Vehicle v)
  * Initializes Road
  */
 Road::Road(vector<double> wp_x, vector<double> wp_y, vector<double> wp_s,
-           vector<double> wp_dx, vector<double> wp_dy)
+           vector<double> wp_dx, vector<double> wp_dy) 
+: lane_traffic(3, vector<double>(5)), lane_traffic_curr(3, vector<double>(2))
 {
   this->_wp_x = wp_x;
   this->_wp_y = wp_y;
   this->_wp_s = wp_s;
   this->_wp_dx = wp_dx;
   this->_wp_dy = wp_dy;
+
+
+  double lane_nearest_s = TrajectoryAction::DIST_LIMIT;
+  double lane_nearest_s_curr = TrajectoryAction::DIST_LIMIT;
+  double lane_nearest_v = TrajectoryAction::VEL_LIMIT;
+
+  double lane_behind_nearest_s = TrajectoryAction::DIST_LIMIT;
+  double lane_behind_nearest_s_curr = TrajectoryAction::DIST_LIMIT;  
+  double lane_behind_nearest_v = TrajectoryAction::VEL_LIMIT;
+  double vehicle_on_tgt_loc = 0; // 0 - false, 1 - true
+
+  for (int i = 0; i < Road::NUM_LANES; i++)
+  {
+
+    // cout << "initialized I = " << i << "\n";
+
+    vector<double> *lane_info = &lane_traffic[i] ;
+    lane_info->at(0) = lane_nearest_s;
+    lane_info->at(1) = lane_nearest_v;
+    lane_info->at(2) = lane_behind_nearest_s;
+    lane_info->at(3) = lane_behind_nearest_v;
+    lane_info->at(4) = vehicle_on_tgt_loc;
+
+    vector<double> *lane_info_curr = &lane_traffic_curr[i] ;
+    lane_info_curr->at(0) = lane_nearest_s_curr;
+    lane_info_curr->at(1) = lane_behind_nearest_s_curr;
+  }
+
 }
 
 Road::~Road()
@@ -140,7 +169,7 @@ TrajectoryAction Road::choose_ego_next_state(double ego_s, double ego_d, int fra
   }
 
   // cout << "Getting traffic info\n" ;
-  map<int, vector<double>> traffic_info = get_traffic_kinematics(vehicles, ego);
+  vector<vector<double>> traffic_info = get_traffic_kinematics(vehicles, ego);
   // for (int i = 0; i < Road::NUM_LANES; i++)
   // {
   //   vector<double> lane_info = traffic_info[(double)i];
@@ -229,6 +258,8 @@ void Road::update(const json &jsn)
   this->next_x_vals = next_x_vals_n;
   this->next_y_vals = next_y_vals_n;
 
+  TrajectoryActionSpeed egoAccel = TrajectoryActionSpeed::MaintainSpeed;
+
   //
   // go around w/o jerk, use spline
   //
@@ -258,11 +289,13 @@ void Road::update(const json &jsn)
 
       if (ta.speedAction == TrajectoryActionSpeed::Decelerate)
       {
-        ref_vel -= Road::MAX_ACCEL; 
+        //ref_vel -= Road::MAX_ACCEL; 
+        egoAccel = TrajectoryActionSpeed::Decelerate;
       }
       else if ((ta.speedAction == TrajectoryActionSpeed::Accelerate) && (ref_vel < SPEED_LIMIT))
       {
-        ref_vel += Road::MAX_ACCEL; 
+        //ref_vel += Road::MAX_ACCEL; 
+        egoAccel = TrajectoryActionSpeed::Accelerate;
       }
 
       if (ta.changeLane == TrajectoryActionLaneChange::ChangeLeft)
@@ -289,7 +322,8 @@ void Road::update(const json &jsn)
   {
     if (ref_vel < Road::SPEED_LIMIT)
     {
-      ref_vel += Road::MAX_ACCEL; 
+      //ref_vel += Road::MAX_ACCEL; 
+        egoAccel = TrajectoryActionSpeed::Accelerate;      
     }
   }
 
@@ -401,8 +435,8 @@ void Road::update(const json &jsn)
   double target_x = 30.0;
   double target_y = spln(target_x);
   double target_dist = sqrt((target_x * target_x) + (target_y * target_y));
-  double N = (target_dist / (0.02 * ref_vel)); //( x miles/hr / 2.24) = mts per sec  // (0.02 * ref_vel / 2.24)
-  double delta = (target_x) / N;
+  // double N = (target_dist / (0.02 * ref_vel)); //( x miles/hr / 2.24) = mts per sec  // (0.02 * ref_vel / 2.24)
+  // double delta = (target_x) / N;
   //printf("N =  %f\nDelta = %f\n", N, delta);
 
   // vector<double> carXY;
@@ -414,10 +448,19 @@ void Road::update(const json &jsn)
   double x_ref = 0;
   double y_ref = 0;
 
+  double vel_delta = 0.0;
+
+  if (egoAccel == TrajectoryActionSpeed::Accelerate) 
+  {
+    vel_delta = MAX_ACCEL;
+  } else if (egoAccel == TrajectoryActionSpeed::Accelerate) {
+    vel_delta = -MAX_ACCEL;
+  }
+
   // fill up the rest of the path
   for (int i = 1; i <= 50 - previous_path_x.size(); i++)
   {
-    x_ref += delta;
+    // x_ref += delta;
     // curr_car_s += delta;
     // carXY = getXY(curr_car_s, (2 + 4 * lane), this->_wp_s, this->_wp_x, this->_wp_y);
     // carXY = mu.getXY_spline(curr_car_s, (2 + 4 * lane));
@@ -426,6 +469,12 @@ void Road::update(const json &jsn)
     // x_ref = (shift_x * cos(0 - ref_yaw) - shift_y * sin(0 - ref_yaw));
 
     y_ref = spln(x_ref); //y_point;
+
+    ref_vel += vel_delta;
+    double N = (target_dist / (0.02 * ref_vel)); //( x miles/hr / 2.24) = mts per sec  // (0.02 * ref_vel / 2.24)
+    double delta = (target_x) / N;
+    x_ref += delta;    
+
     // y_ref = spln(carXY[0]) ;
     // next_x_vals.push_back(carXY[0]);
     // next_x_vals.push_back(x_ref);
@@ -446,13 +495,10 @@ void Road::update(const json &jsn)
   }
 }
 
-map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles, Vehicle ego)
+vector<vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles, Vehicle ego)
 {
 
   cout << "In Road::get_traffic_kinematics\n";
-
-  map<int, vector<double>> lane_traffic;
-  map<int, vector<double>> lane_traffic_curr;
 
   double ego_goal_s = ego.goal_s;
   double ego_s = ego.s;
@@ -467,6 +513,17 @@ map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles
   double vhcl_goal_s;
   double vhcl_v;
 
+  // cout << "Road::NUM_LANES " << Road::NUM_LANES << "\n" ;
+
+
+  // cout << "In Road::get_traffic_kinematics, initialized the map\n" ;
+
+  cout << "Ego "
+       << " lane=" << ego_lane << " s=" << ego.s << " goal_s=" << ego_goal_s << " v=" << ego_v << "\n";
+
+  vector<double> *lane_info;
+  vector<double> *lane_info_curr;  
+
   double lane_nearest_s = TrajectoryAction::DIST_LIMIT;
   double lane_nearest_s_curr = TrajectoryAction::DIST_LIMIT;
   double lane_nearest_v = TrajectoryAction::VEL_LIMIT;
@@ -476,28 +533,24 @@ map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles
   double lane_behind_nearest_v = TrajectoryAction::VEL_LIMIT;
   double vehicle_on_tgt_loc = 0; // 0 - false, 1 - true
 
-  // cout << "Road::NUM_LANES " << Road::NUM_LANES << "\n" ;
-
   for (int i = 0; i < Road::NUM_LANES; i++)
   {
 
     // cout << "initialized I = " << i << "\n";
 
-    vector<double> lane_info = {lane_nearest_s, lane_nearest_v, lane_behind_nearest_s, lane_behind_nearest_v, vehicle_on_tgt_loc};
-    lane_traffic[i] = lane_info;
-    //lane_traffic.insert(std::pair<int,vector<double>>(i, lane_info));
+    vector<double> *lane_info = &lane_traffic[i] ;
+    lane_info->at(0) = lane_nearest_s;
+    lane_info->at(1) = lane_nearest_v;
+    lane_info->at(2) = lane_behind_nearest_s;
+    lane_info->at(3) = lane_behind_nearest_v;
+    lane_info->at(4) = vehicle_on_tgt_loc;
 
-    vector<double> lane_info_curr = {lane_nearest_s_curr, lane_behind_nearest_s_curr};
-    lane_traffic_curr[i] = lane_info_curr;
+    vector<double> *lane_info_curr = &lane_traffic_curr[i] ;
+    lane_info_curr->at(0) = lane_nearest_s_curr;
+    lane_info_curr->at(1) = lane_behind_nearest_s_curr;
   }
 
-  // cout << "In Road::get_traffic_kinematics, initialized the map\n" ;
 
-  cout << "Ego "
-       << " lane=" << ego_lane << " s=" << ego.s << " goal_s=" << ego_goal_s << " v=" << ego_v << "\n";
-
-  vector<double> *lane_info;
-  vector<double> *lane_info_curr;  
 
   map<int, Vehicle>::iterator it = vehicles.begin();
   while (it != vehicles.end())
@@ -539,7 +592,8 @@ map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles
           }          
 
           double time_gap = abs(lane_info->at(0)/ego_v) ;
-          if (time_gap > Road::MIN_TIME_GAP){
+          if (time_gap < Road::MIN_TIME_GAP){
+            cout << "possible collision if in lane due to less tg " << vhcl_lane << "\n";
             lane_info->at(4) = (double)1; // possible collision
           }
         }
@@ -548,7 +602,8 @@ map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles
         {
           double v_diff = ego_v - vhcl_v;
           double time_gap = abs((vhcl_goal_s - ego_goal_s)/v_diff) ;
-          if (time_gap > Road::MIN_TIME_GAP){
+          if (time_gap < Road::MIN_TIME_GAP){
+            cout << "possible collision if in lane due to less tg and ego speed diff " << vhcl_lane << "\n";            
             lane_info->at(4) = (double)1; // possible collision
           }
         }
@@ -567,14 +622,14 @@ map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles
           // Less than  minimum meters gap from front vehicles in current and target lanes, from predicted positions.
           if ((abs(lane_info->at(2)) <= Road::PREF_BUFFER) && (ego_lane != vhcl_lane))
           {
-            cout << "possible collision if lane change" << vhcl_lane << "\n";
+            cout << "possible collision if lane change " << vhcl_lane << "\n";
             lane_info->at(4) = (double)1; // possible collision
           }          
 
           double time_gap = abs(lane_info->at(0)/ego_v) ;
-          if ((time_gap > Road::MIN_TIME_GAP) && (ego_lane != vhcl_lane))
-          {
-            cout << "possible collision if lane change" << vhcl_lane << "\n";            
+          if ((time_gap < Road::MIN_TIME_GAP) && (ego_lane != vhcl_lane))
+          { 
+            cout << "possible collision if lane change TG with bv " << vhcl_lane << "\n";            
             lane_info->at(4) = (double)1; // possible collision
           }          
         }
@@ -599,7 +654,8 @@ map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles
           }          
 
           double time_gap = abs(lane_info_curr->at(0)/ego_v) ;
-          if (time_gap > Road::MIN_TIME_GAP){
+          if (time_gap < Road::MIN_TIME_GAP){
+            cout << "possible collision if in lane due to less tg fv curr s " << vhcl_lane << "\n";            
             lane_info->at(4) = (double)1; // possible collision
           }
         }
@@ -608,7 +664,8 @@ map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles
         {
           double v_diff = ego_v - vhcl_v;
           double time_gap = abs((vhcl_s - ego_s)/v_diff) ;
-          if (time_gap > Road::MIN_TIME_GAP){
+          if (time_gap < Road::MIN_TIME_GAP){
+            cout << "possible collision if in lane due to less tg and ego speed diff curr s " << vhcl_lane << "\n";                      
             lane_info->at(4) = (double)1; // possible collision
           }
         }        
@@ -626,14 +683,14 @@ map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles
           // Less than  minimum meters gap from front vehicles in current and target lanes, from predicted positions.
           if ((abs(lane_info_curr->at(1)) <= Road::PREF_BUFFER) && (ego_lane != vhcl_lane))
           {
-            cout << "possible collision if lane change" << vhcl_lane << "\n";
+            cout << "possible collision if lane change " << vhcl_lane << "\n";
             lane_info->at(4) = (double)1; // possible collision
           }          
 
           double time_gap = abs(lane_info_curr->at(1)/ego_v) ;
-          if ((time_gap > Road::MIN_TIME_GAP) && (ego_lane != vhcl_lane))
+          if ((time_gap < Road::MIN_TIME_GAP) && (ego_lane != vhcl_lane))
           {
-            cout << "possible collision if lane change" << vhcl_lane << "\n";            
+            cout << "possible collision if lane change TG with bv curr s " << vhcl_lane << "\n";                       
             lane_info->at(4) = (double)1; // possible collision
           }   
         }
@@ -649,8 +706,16 @@ map<int, vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles
 
   for (int i = 0; i < Road::NUM_LANES; i++)
   {
-    vector<double> lane_info = lane_traffic[(double)i];
-    cout << "Lane " << i << " fs:" << lane_info[0] << " fv:" << lane_info[1] << " bs:" << lane_info[2] << " bv:" << lane_info[3] << " coll:" << lane_info[4] << "\n";
+    //cout << "Lane " << i << " fs:" <<  lane_traffic[i][0] << " fv:" <<  lane_traffic[i][1] << " bs:" <<  lane_traffic[i][2] << " bv:" <<  lane_traffic[i][3] << " coll:" << la lane_traffic[i]ne_info[4] << "\n";
+    printf("Lane %01d ", i);
+    printf("g-fvs %06.2f ", lane_traffic[i][0]);
+    printf("g-fvv %06.2f ", lane_traffic[i][1]);
+    printf("g-bvs %06.2f ", lane_traffic[i][2]);
+    printf("g-bvv %06.2f ", lane_traffic[i][3]);
+    printf("g-lc  %06.2f ", lane_traffic[i][4]);    
+    printf("c-fvs %06.2f ", lane_traffic_curr[i][0]);    
+    printf("c-bvs %06.2f ", lane_traffic_curr[i][1]);   
+    printf("\n");
   }
 
   // cout << "Returning from  Road::get_traffic_kinematics\n" ;

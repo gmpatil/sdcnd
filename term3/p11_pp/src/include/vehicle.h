@@ -54,21 +54,21 @@ class Vehicle {
     void updateGoal(double s, float d, int horizon); //for Ego
     void updateGoal(int horizon); // for non-Ego 
 
-    TrajectoryAction choose_next_state(map<int, TrajectoryAction> &predictions, map<int, vector<double>> &trafficInfo , int horizon); 
+    TrajectoryAction choose_next_state(map<int, TrajectoryAction> &predictions, vector<vector<double>> &trafficInfo , int horizon); 
 
     vector<string> successor_states();
     
-    TrajectoryAction generate_trajectory(string state, map<int, TrajectoryAction> predictions, map<int, vector<double>> &traffic_info);
+    TrajectoryAction generate_trajectory(string state, map<int, TrajectoryAction> predictions, vector<vector<double>> &traffic_info);
 
     vector<float> get_kinematics(map<int, TrajectoryAction> predictions, int lane);
 
-    TrajectoryAction constant_speed_trajectory(map<int, vector<double>> &traffic_info);
+    TrajectoryAction constant_speed_trajectory(vector<vector<double>> &traffic_info);
 
-    TrajectoryAction keep_lane_trajectory(map<int, TrajectoryAction> predictions, map<int, vector<double>> &traffic_info);
+    TrajectoryAction keep_lane_trajectory(map<int, TrajectoryAction> predictions, vector<vector<double>> &traffic_info);
 
-    TrajectoryAction lane_change_trajectory(string state, map<int, TrajectoryAction> predictions, map<int, vector<double>> &traffic_info);
+    TrajectoryAction lane_change_trajectory(string state, map<int, TrajectoryAction> predictions, vector<vector<double>> &traffic_info);
 
-    TrajectoryAction prep_lane_change_trajectory(string state, map<int, TrajectoryAction> predictions, map<int, vector<double>> &traffic_info);
+    TrajectoryAction prep_lane_change_trajectory(string state, map<int, TrajectoryAction> predictions, vector<vector<double>> &traffic_info);
 
     bool get_vehicle_behind(map<int, TrajectoryAction> predictions, int lane, Vehicle &rVehicle);
 

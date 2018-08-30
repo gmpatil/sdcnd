@@ -95,7 +95,7 @@ void Vehicle::updateGoal(int ghorizon) {
     this->goal_lane = (int) std::floor(this->goal_d / 4.0);    
 }
 
-TrajectoryAction Vehicle::choose_next_state(map<int, TrajectoryAction> &predictions, map<int, vector<double>> &traffic_info, int horizon) {
+TrajectoryAction Vehicle::choose_next_state(map<int, TrajectoryAction> &predictions, vector<vector<double>> &traffic_info, int horizon) {
     /*
     Here you can implement the transition_function code from the Behavior Planning Pseudocode
     classroom concept. Your goal will be to return the best (lowest cost) trajectory corresponding
@@ -162,7 +162,7 @@ vector<string> Vehicle::successor_states() {
   return states;
 }
 
-TrajectoryAction Vehicle::generate_trajectory(string state, map<int, TrajectoryAction> predictions, map<int, vector<double>> &traffic_info) {
+TrajectoryAction Vehicle::generate_trajectory(string state, map<int, TrajectoryAction> predictions, vector<vector<double>> &traffic_info) {
     /*
     Given a possible next state, generate the appropriate trajectory to realize the next state.
     */
@@ -267,7 +267,7 @@ double Vehicle::get_s(int frame) {
   return frame_s;
 }
 
-TrajectoryAction Vehicle::constant_speed_trajectory(map<int, vector<double>> &traffic_info) {
+TrajectoryAction Vehicle::constant_speed_trajectory(vector<vector<double>> &traffic_info) {
     /*
     Generate a constant speed trajectory.
     */
@@ -291,7 +291,7 @@ TrajectoryAction Vehicle::constant_speed_trajectory(map<int, vector<double>> &tr
    }
 }
 
-TrajectoryAction Vehicle::keep_lane_trajectory(map<int, TrajectoryAction> predictions, map<int, vector<double>> &traffic_info) {
+TrajectoryAction Vehicle::keep_lane_trajectory(map<int, TrajectoryAction> predictions, vector<vector<double>> &traffic_info) {
     /*
     Generate a keep lane trajectory.
     */
@@ -371,7 +371,7 @@ TrajectoryAction Vehicle::keep_lane_trajectory(map<int, TrajectoryAction> predic
    }
 }
 
-TrajectoryAction Vehicle::prep_lane_change_trajectory(string state, map<int, TrajectoryAction> predictions, map<int, vector<double>> &traffic_info) {
+TrajectoryAction Vehicle::prep_lane_change_trajectory(string state, map<int, TrajectoryAction> predictions, vector<vector<double>> &traffic_info) {
     /*
     Generate a trajectory preparing for a lane change.
     */
@@ -491,7 +491,7 @@ TrajectoryAction Vehicle::prep_lane_change_trajectory(string state, map<int, Tra
 
 }
 
-TrajectoryAction Vehicle::lane_change_trajectory(string state, map<int, TrajectoryAction> predictions, map<int, vector<double>> &traffic_info) {
+TrajectoryAction Vehicle::lane_change_trajectory(string state, map<int, TrajectoryAction> predictions, vector<vector<double>> &traffic_info) {
     /*
     Generate a lane change trajectory.
     */

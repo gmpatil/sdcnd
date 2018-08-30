@@ -49,10 +49,16 @@ class Road
     vector<double> _wp_dx;
     vector<double> _wp_dy;  
 
+
+    // map<int, vector<double>> lane_traffic;
+    // map<int, vector<double>> lane_traffic_curr;
+    vector<vector<double>> lane_traffic;
+    vector<vector<double>> lane_traffic_curr;
+
     Vehicle ego;
     map<int, Vehicle> vehicles;
 
-    map<int, vector<double>> get_traffic_kinematics(map<int, Vehicle> vehicles, Vehicle ego);
+    vector<vector<double>> get_traffic_kinematics(map<int, Vehicle> vehicles, Vehicle ego);
 
     //TODO remove
     int lane = 1;
