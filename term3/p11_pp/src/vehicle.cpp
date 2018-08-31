@@ -148,15 +148,11 @@ vector<string> Vehicle::successor_states() {
     states.push_back("PLCL");
     states.push_back("PLCR");
   } else if (state.compare("PLCL") == 0) {
-    if (lane != NUM_LANES - 1) {
       states.push_back("PLCL");
       states.push_back("LCL");
-    }
   } else if (state.compare("PLCR") == 0) {
-    if (lane != 0) {
       states.push_back("PLCR");
       states.push_back("LCR");
-    }
   }
   //If state is "LCL" or "LCR", then just return "KL"
   return states;
@@ -303,7 +299,7 @@ TrajectoryAction Vehicle::keep_lane_trajectory(map<int, TrajectoryAction> predic
         TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::Decelerate, 
                 TrajectoryActionLaneChange::KeepLane, this->goal_lane);
         trajectory.s = this->s;
-        trajectory.goal_s = this->goal_s;
+        trajectory.goal_s = this->s + dist_ahead_vehicle_s;
         trajectory.v = this->goal_v - MAX_ACCEL;     
         trajectory.state = "KL" ;  
 
@@ -383,6 +379,13 @@ TrajectoryAction Vehicle::prep_lane_change_trajectory(string state, map<int, Tra
     // }
 
     int new_lane = this->lane + lane_direction[state];
+    if (new_lane < 0) {
+        new_lane = 0;
+    }
+
+    if (new_lane >= NUM_LANES) {
+        new_lane = NUM_LANES - 1;
+    }
 
     vector<double> curr_lane_info = traffic_info[this->goal_lane];
     vector<double> tgt_lane_info = traffic_info[new_lane];
@@ -391,7 +394,7 @@ TrajectoryAction Vehicle::prep_lane_change_trajectory(string state, map<int, Tra
     double ahead_vehicle_s = curr_lane_info[0];
     double ahead_vehicle_s_tgt = tgt_lane_info[0];
 
-    if (tgt_lane_info[5] == 1) {
+    if (tgt_lane_info[4] == 1.0) {
         // possible collision
         if (state.compare("PLCL") == 0) {
             cout << "Can not PLCL due to risk of colllision\n";
@@ -409,7 +412,7 @@ TrajectoryAction Vehicle::prep_lane_change_trajectory(string state, map<int, Tra
         trajectory = TrajectoryAction(TrajectoryActionSpeed::Decelerate,         
                 TrajectoryActionLaneChange::KeepLane, this->goal_lane);
         trajectory.s = this->s;
-        trajectory.goal_s = this->goal_s;
+        trajectory.goal_s = this->s + ahead_vehicle_s;
         trajectory.v = this->goal_v - MAX_ACCEL;
 
         if (trajectory.v > tgt_lane_info[1]) {
@@ -474,6 +477,7 @@ TrajectoryAction Vehicle::prep_lane_change_trajectory(string state, map<int, Tra
         trajectory.s = this->s;
         trajectory.goal_s = this->goal_s;
         trajectory.v = vel;       
+        trajectory.goal_lane = this->lane;       
         trajectory.state = state ;     
         trajectory.tgt_lane_dist = (curr_lane_info[0] + tgt_lane_info[0])/2.0;        
         trajectory.tgt_lane_vel = (curr_lane_info[1] + tgt_lane_info[1])/2.0;        
@@ -496,10 +500,17 @@ TrajectoryAction Vehicle::lane_change_trajectory(string state, map<int, Trajecto
     Generate a lane change trajectory.
     */
     int new_lane = this->lane + lane_direction[state];
+    if (new_lane < 0) {
+        new_lane = 0;
+    }
+
+    if (new_lane >= NUM_LANES) {
+        new_lane = NUM_LANES - 1;
+    }
 
     vector<double> tgt_lane_info = traffic_info[new_lane];
 
-    if (tgt_lane_info[5] == 1) {
+    if (tgt_lane_info[4] == 1) {
         // possible collision
         if (state.compare("LCL") == 0) {
             cout << "Can not LCL due to risk of colllision\n";
@@ -538,6 +549,7 @@ TrajectoryAction Vehicle::lane_change_trajectory(string state, map<int, Trajecto
     trajectory.s = this->s;
     trajectory.goal_s = this->goal_s;
     trajectory.v = vel;    
+    trajectory.goal_lane = new_lane;    
     trajectory.state = state ;       
     trajectory.tgt_lane_dist = tgt_lane_info[0];        
     trajectory.tgt_lane_vel = tgt_lane_info[1];        

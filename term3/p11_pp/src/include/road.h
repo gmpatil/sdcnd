@@ -22,6 +22,7 @@ class Road
   public:
     static const int NUM_LANES = Vehicle::NUM_LANES;
     static constexpr double SPEED_LIMIT = Vehicle::SPEED_LIMIT; 
+    static constexpr double LANE_CHANGE_SPEED_LIMIT = 17.0 ;     
     static constexpr double MAX_ACCEL =  Vehicle::MAX_ACCEL;
     static constexpr double MAX_S = Vehicle::MAX_S;    
     static const int PREF_BUFFER = Vehicle::PREF_BUFFER; // in meters.
