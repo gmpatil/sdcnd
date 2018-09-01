@@ -15,26 +15,6 @@
 Vehicle::Vehicle() {
 }
 
-
-// Vehicle::Vehicle(double x1, double y1, double vx1, double vy1, double s1, 
-//               double d1, double yaw1, double yaw_rel_lane1){
-//   this->x = x1;
-//   this->y = y1;
-//   this->vx = vx1;
-//   this->vy = vy1;
-//   this->s = s1;
-//   this->d = d1;
-//   this->yaw = yaw1;
-
-//   this->v = sqrt(vx * vx + vy * vy);
-//   this->yaw_rel_lane = yaw_rel_lane1;
-//   this->v_s = v * cos(yaw_rel_lane);
-//   this->v_d = v * sin(yaw_rel_lane);
-  
-//   this->lane = (int) std::floor(this->d / 4.0);
-//   this->goal_lane = this->lane ;
-// }
-
 Vehicle::Vehicle(int idt, double x1, double y1, double vx1, double vy1, double s1, 
               float d1, double yaw1, double yaw_rel_lane1){
   this->id = idt;
@@ -124,7 +104,7 @@ TrajectoryAction Vehicle::choose_next_state(map<int, TrajectoryAction> &predicti
             costs.push_back(cost);
             final_trajectories.push_back(trajectory);
         } else {
-            std::cout << "NULL traj action for state:" << *it << std::endl;
+            // std::cout << "NULL traj action for state:" << *it << std::endl;
         }
     }
 
@@ -251,11 +231,8 @@ void Vehicle::realize_next_state(TrajectoryAction trajectory) {
   Sets state and kinematics for ego vehicle using the last state of the trajectory.
    */
   TrajectoryAction next_state = trajectory;
-  //this->state = next_state.state;
   this->lane = next_state.goal_lane;
   this->s = next_state.s;
-  //this->v = next_state.v;
-  //this->a = next_state.a;
 }
 
 double Vehicle::get_s(int frame) {
@@ -295,7 +272,7 @@ TrajectoryAction Vehicle::keep_lane_trajectory(map<int, TrajectoryAction> predic
    double dist_ahead_vehicle_s = lane_info[0];
 
    if ( (dist_ahead_vehicle_s <= PREF_BUFFER)  || (lane_info[4] == 1)){
-        cout << "KL Traj: Possible collision, decelerating...." << "\n" ;
+        // cout << "KL Traj: Possible collision, decelerating...." << "\n" ;
         TrajectoryAction trajectory = TrajectoryAction(TrajectoryActionSpeed::Decelerate, 
                 TrajectoryActionLaneChange::KeepLane, this->goal_lane);
         trajectory.s = this->s;
@@ -307,7 +284,7 @@ TrajectoryAction Vehicle::keep_lane_trajectory(map<int, TrajectoryAction> predic
         trajectory.tgt_lane_vel = lane_info[1];
         trajectory.tgt_lane_coll = lane_info[4];
 
-        cout << "KL: Ego.v=" << this->v <<" traj_v=" << trajectory.v << "\n";        
+        // cout << "KL: Ego.v=" << this->v <<" traj_v=" << trajectory.v << "\n";        
         return trajectory;
    } else {
         TrajectoryActionSpeed speed;
@@ -372,12 +349,6 @@ TrajectoryAction Vehicle::prep_lane_change_trajectory(string state, map<int, Tra
     Generate a trajectory preparing for a lane change.
     */
 
-    // for (int i = 0; i < NUM_LANES; i++)
-    // {
-    //     vector<double> lane_info = traffic_info[(double)i];
-    //     cout << "Lane " << i << " fs:" << lane_info[0] << " fv:" << lane_info[1] << " bs:" << lane_info[2] << " bv:" << lane_info[3] << " coll:" << lane_info[4] << "\n";
-    // }
-
     int new_lane = this->lane + lane_direction[state];
     if (new_lane < 0) {
         new_lane = 0;
@@ -396,11 +367,11 @@ TrajectoryAction Vehicle::prep_lane_change_trajectory(string state, map<int, Tra
 
     if (tgt_lane_info[4] == 1.0) {
         // possible collision
-        if (state.compare("PLCL") == 0) {
-            cout << "Can not PLCL due to risk of colllision\n";
-        } else {
-            cout << "Can not PLCR due to risk of colllision\n";
-        }
+        // if (state.compare("PLCL") == 0) {
+        //     cout << "Can not PLCL due to risk of colllision\n";
+        // } else {
+        //     cout << "Can not PLCR due to risk of colllision\n";
+        // }
 
         return NULL_TRAJECTORY_ACTION;
     }
@@ -471,8 +442,6 @@ TrajectoryAction Vehicle::prep_lane_change_trajectory(string state, map<int, Tra
             speed = TrajectoryActionSpeed::Decelerate;
         }        
 
-
-        // TrajectoryAction trajectory = TrajectoryAction(speed, TrajectoryActionLaneChange::KeepLane, this->goal_lane);
         trajectory = TrajectoryAction(speed, TrajectoryActionLaneChange::KeepLane, this->goal_lane);        
         trajectory.s = this->s;
         trajectory.goal_s = this->goal_s;
@@ -485,11 +454,11 @@ TrajectoryAction Vehicle::prep_lane_change_trajectory(string state, map<int, Tra
         // return trajectory;
     }
 
-    if (state.compare("PLCL") == 0) {
-        cout << "PLCL: Ego.goal_v=" << this->goal_v << " ego_v:" << this->v << " tgt_ln_v=" << trajectory.tgt_lane_vel << " new lane:" << new_lane << "\n";
-    } else {
-        cout << "PLCR: Ego.goal_v=" << this->goal_v << " ego_v:" << this->v << " tgt_ln_v=" << trajectory.tgt_lane_vel << " new lane:" << new_lane << "\n";
-    }
+    // if (state.compare("PLCL") == 0) {
+    //     cout << "PLCL: Ego.goal_v=" << this->goal_v << " ego_v:" << this->v << " tgt_ln_v=" << trajectory.tgt_lane_vel << " new lane:" << new_lane << "\n";
+    // } else {
+    //     cout << "PLCR: Ego.goal_v=" << this->goal_v << " ego_v:" << this->v << " tgt_ln_v=" << trajectory.tgt_lane_vel << " new lane:" << new_lane << "\n";
+    // }
 
     return trajectory;    
 
@@ -512,11 +481,11 @@ TrajectoryAction Vehicle::lane_change_trajectory(string state, map<int, Trajecto
 
     if (tgt_lane_info[4] == 1) {
         // possible collision
-        if (state.compare("LCL") == 0) {
-            cout << "Can not LCL due to risk of colllision\n";
-        } else {
-            cout << "Can not LCR due to risk of colllision\n";
-        }
+        // if (state.compare("LCL") == 0) {
+        //     cout << "Can not LCL due to risk of colllision\n";
+        // } else {
+        //     cout << "Can not LCR due to risk of colllision\n";
+        // }
 
         return NULL_TRAJECTORY_ACTION;
     }
@@ -556,13 +525,13 @@ TrajectoryAction Vehicle::lane_change_trajectory(string state, map<int, Trajecto
     trajectory.tgt_lane_coll = tgt_lane_info[4];
 
 
-    cout << "LC Traj Gen:" << state << "\n" ;
+    // cout << "LC Traj Gen:" << state << "\n" ;
 
-    if (state.compare("LCL") == 0) {
-        cout << "LCL: v=" << trajectory.v << " tgt_ln_v=" << trajectory.tgt_lane_vel << "new lane:" << new_lane << "\n";
-    } else {
-        cout << "LCR: v=" << trajectory.v << " tgt_ln_v=" << trajectory.tgt_lane_vel << "new lane:" << new_lane << "\n";
-    }
+    // if (state.compare("LCL") == 0) {
+    //     cout << "LCL: v=" << trajectory.v << " tgt_ln_v=" << trajectory.tgt_lane_vel << "new lane:" << new_lane << "\n";
+    // } else {
+    //     cout << "LCR: v=" << trajectory.v << " tgt_ln_v=" << trajectory.tgt_lane_vel << "new lane:" << new_lane << "\n";
+    // }
 
     return trajectory;
 }
