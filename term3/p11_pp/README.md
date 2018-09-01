@@ -150,7 +150,10 @@ This project exposed me to Path Planning steps involved, like predicting behaivi
 
 Once code infrasture is in place, most of the effort is spent in tuning parameters so as to minimize jerks, change lanes smoothly without colliding, and accelerate and decelerate as appropriate to drive at the optimal speed.
 
+## Video
+Below is the link to the video showing car completing the track w/o collsions and jerks.
 
+[Video](https://github.com/gmpatil/sdcnd/blob/master/term3/p11_pp/res/pp11_path_planning.m4v "Car completing the track")
 
 
 
