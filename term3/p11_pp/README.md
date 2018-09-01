@@ -36,88 +36,120 @@ In this project goal is to safely navigate around a virtual highway with other t
 ## Valid Trajectories
 ### The car is able to drive at least 4.32 miles without incident
 Attached screen shows the car completing the 4.32 miles loop without incident.
-![car completing the 4.32 miles loop without incident](./LoopWoIncident.png)
+![car completing the 4.32 miles loop without incident](./res/complete_track.png)
 
 
 ### The car drives according to the speed limit
 The car maintains speed withing the limit of 50 MPH. Also tries to drive close 50 MPH unless slow moving vehicles are causing it to slow down.
 
 ```c++            
-    if (too_close) {
-      ref_vel -= 0.224;  // deccelerate 5m/sec2
-    } else if (ref_vel < 49.5) {
-      ref_vel += 0.224; // accelerate 5m/sec2
-    }
+    static constexpr double SPEED_LIMIT = 22; //m/sec,  45 miles/hour * 0.447 ==  20m/sec ;
+    static constexpr double MAX_ACCEL = 0.08; //m per sim cycle,i.e 1/50th of sec. 0.09m/0.02 sec = 10m/sec/sec 
+    static constexpr double MAX_S = 6945.554;  // 4.32 miles      
+    static const int PREF_BUFFER = 30; //Buffer from other vehicles in current and target lanes.
+
 ```
 
 ### Max Acceleration and Jerk are not Exceeded
 The car's maximum speed is ensured to not to exceed 50 MPH and also jerks are avoided by accelerating and deccelating at 5m/sec<sup>2</sup>. See the code snippet above.
 
 ### Car does not have collisions
-The car monitors vehicles infront on the current and intended adjacent lanes to avoid collision.
+The car monitors vehicles close infront and behind in current lane as well as target lanes before changing the lanes. 
+
+The get_traffic_kinematics member function in Road class gather information related to other vehicles in current and target lanes. It identifies the distances closest front and back vehicles in each lane and their velocities. 
+
 
 ```c++
-    // find ref vel
-    for (int i=0; i < sensor_fusion.size();i++) {
-      // car in our lane
-      float d = sensor_fusion[i][6]; // ith car, 7th param(6) = d
-      if (d < (2 + 4*lane + 2) && d > (2 + 4*lane - 2)) {
-        double vx = sensor_fusion[i][3];
-        double vy = sensor_fusion[i][4];
-        double check_speed = sqrt(vx*vx+ vy*vy);
-        double check_car_s = sensor_fusion[i][5]; // 6th param s val
-        
-        check_car_s += ((double) prev_size * 0.02 *check_speed); 
-        //check s values greater than mine and s gap
-        if ((check_car_s > car_s) && ((check_car_s - car_s) < 30)) {
-          // lower ref vel so that we do not crash
-          //ref_vel = 29.5; // mph
-          too_close = true;
-          
-          if (lane > 0){
-            lane = 0;
-          }
-          
-        }
-      }
-    }            
+vector<vector<double>> Road::get_traffic_kinematics(map<int, Vehicle> vehicles, Vehicle ego); 
 ```
+
+
 
 ### The car stays in its lane, except for the time between changing lanes
 Waypoints are calculated on in Frenet co-ordinates using center of lane co-ordinates unless changing lanes, then converting Frenet co-ordinates to car reference co-ordinates. This ensure car stayes in its lane unless changing the lanes.
 
 ```c++
-  // add 3 more forward way points. Use Frenet.
-  vector<double> next_wp = getXY(car_s + 30, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-  ptsx.push_back(next_wp[0]);
-  ptsy.push_back(next_wp[1]);
-  
-  vector<double> next_wp2 = getXY(car_s + 60, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-  ptsx.push_back(next_wp2[0]);
-  ptsy.push_back(next_wp2[1]);
-  
-  vector<double> next_wp3 = getXY(car_s + 90, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-  ptsx.push_back(next_wp3[0]);
-  ptsy.push_back(next_wp3[1]);
-  
-  // Shift the points to car reference 
-  for (int i = 0; i < ptsx.size(); i++){
-    double shift_x = ptsx[i] - ref_x;
-    double shift_y = ptsy[i] - ref_y;
-    
-    ptsx[i] = (shift_x * cos(0 - ref_yaw) - shift_y * sin(0- ref_yaw));
-    ptsy[i] = (shift_x * sin(0 - ref_yaw) + shift_y * cos(0- ref_yaw));
+void Road::update(const json &jsn) 
+{
+...
+  // Add 3 more forward way points. Use Frenet.
+  for (auto& offset: {30, 60, 90}) {
+    vector<double> next_wp = getXY(car_s + offset, (2 + 4 * lane), this->_wp_s, this->_wp_x, this->_wp_y);
+    ptsx.push_back(next_wp[0]);
+    ptsy.push_back(next_wp[1]);
   }
-  
-  // create spline
-  tk::spline s;
-  s.set_points(ptsx, ptsy);
+
+  // Shift the points to car reference
+  for (int i = 0; i < ptsx.size(); i++)
+  {
+    double shift_x = ptsx[i] - car_x_calc;
+    double shift_y = ptsy[i] - car_y_calc;
+
+    ptsx[i] = (shift_x * cos(0 - ref_yaw) - shift_y * sin(0 - ref_yaw));
+    ptsy[i] = (shift_x * sin(0 - ref_yaw) + shift_y * cos(0 - ref_yaw));
+  }
+...
+}
 ```
 
 ### The car is able to change lanes
-Car is able to change the lane smoothly as target lane Frenet co-ordinates are calculated and smooth polynomial trajectory is generated using Spline function. See the code snipptes above.
+Car is able to change the lane smoothly as target lane Frenet co-ordinates are calculated and smooth polynomial trajectory is generated using Spline function. See the code snipptes above and below.
+
+The Road::update member function uses spline library to create smooth trajectories with accepteble jerks levels. 
+
+```c++
+void Road::update(const json &jsn) 
+{
+...
+    double N = (target_dist / (0.02 * ref_vel)); 
+    double delta = (target_x) / N;
+    x_ref += delta;    
+    y_ref = spln(x_ref); 
+
+    //rotate back to normal/global co-ordinates
+    double x_point = (x_ref * cos(ref_yaw) - y_ref * sin(ref_yaw));
+    double y_point = (x_ref * sin(ref_yaw) + y_ref * cos(ref_yaw));
+    x_point += car_x_calc;
+    y_point += car_y_calc;
+
+    next_x_vals.push_back(x_point);
+    next_y_vals.push_back(y_point);
+...
+}
+```
+Car uses Finite State Machine to keep track of and to change optimal future state. It uses Cost functions to decide among valid future states and trajectories.
+
+```c++
+TrajectoryAction Vehicle::choose_next_state(map<int, TrajectoryAction> &predictions, vector<vector<double>> &traffic_info, int horizon) {
+   ...
+    for (vector<string>::iterator it = states.begin(); it != states.end(); ++it) {
+        TrajectoryAction trajectory = generate_trajectory(*it, predictions, traffic_info);
+        if (&trajectory != &NULL_TRAJECTORY_ACTION) {
+            cost = calculate_cost(*this, predictions, trajectory);
+            cout << "State:" << *it << " cost=" << cost << "\n" ;
+            costs.push_back(cost);
+            final_trajectories.push_back(trajectory);
+        } else {
+            // std::cout << "NULL traj action for state:" << *it << std::endl;
+        }
+    }
+
+    vector<float>::iterator best_cost = min_element(begin(costs), end(costs));
+    int best_idx = distance(begin(costs), best_cost);
+
+    return final_trajectories[best_idx];
+}
+```
+
+Below diagram depicts the states and transistions of Finite State Machine used in this project.
+
+![States of Finite State Machine used.](./res/FSM.png)
 
 ## Reflection
+This project exposed me to Path Planning steps involved, like predicting behaivior of other vehicles, planning and creating trajectories and deciding optimal trajectory and patch based using Cost functions.
+
+Once code infrasture is in place, most of the effort is spent in tuning parameters so as to minimize jerks, change lanes smoothly without colliding, and accelerate and decelerate as appropriate to drive at the optimal speed.
+
 
 
 

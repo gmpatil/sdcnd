@@ -350,15 +350,14 @@ void Road::update(const json &jsn)
     ptsy.push_back(car_y_calc);
   }
 
-//  MapUtil mu;
-
-  // add 3 more forward way points. Use Frenet.
+  //MapUtil mu;
+  
+  // Add 3 more forward way points. Use Frenet.
   for (auto& offset: {30, 60, 90}) {
     vector<double> next_wp = getXY(car_s + offset, (2 + 4 * lane), this->_wp_s, this->_wp_x, this->_wp_y);
     ptsx.push_back(next_wp[0]);
     ptsy.push_back(next_wp[1]);
   }
-
 
   // Shift the points to car reference
   for (int i = 0; i < ptsx.size(); i++)
@@ -420,7 +419,7 @@ void Road::update(const json &jsn)
     x_ref += delta;    
     y_ref = spln(x_ref); //y_point;
 
-    // // rotate back to normal/global co-ordinates
+    //rotate back to normal/global co-ordinates
     double x_point = (x_ref * cos(ref_yaw) - y_ref * sin(ref_yaw));
     double y_point = (x_ref * sin(ref_yaw) + y_ref * cos(ref_yaw));
     x_point += car_x_calc;
