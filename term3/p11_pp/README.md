@@ -146,9 +146,9 @@ Below diagram depicts the states and transistions of Finite State Machine used i
 ![States of Finite State Machine used.](./res/FSM.png)
 
 ## Reflection
-This project exposed me to Path Planning steps involved, like predicting behaivior of other vehicles, planning and creating trajectories and deciding optimal trajectory and patch based using Cost functions.
+This project exposed me to Path Planning steps involved, like predicting behaivior of other vehicles, planning and creating trajectories and deciding optimal trajectory and path using Cost functions.
 
-Once code infrasture is in place, most of the effort is spent in tuning parameters so as to minimize jerks, change lanes smoothly without colliding, and accelerate and decelerate as appropriate to drive at the optimal speed.
+Once code infrastructure is in place, most of the effort is spent in tuning parameters so as to minimize jerks, change lanes smoothly without colliding, and accelerate and decelerate as appropriate to drive at the optimal speed.
 
 ## Video
 Below is the link to the video showing car completing the track w/o collsions and jerks.
