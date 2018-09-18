@@ -57,43 +57,49 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     :return: The Tensor for the last layer of output
     """
 
-    # Decoder - 1x1 conv on vgg layer 7, preserve spatial information.
-    decode_lay7 = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, padding='same',
-                                kernel_initializer=tf.random_normal_initializer(stddev=0.001),
-                                kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+    with tf.name_scope('gmp-decoding-scaleup'):
 
-    # Decoder - Up-sample by transpose
-    up_layer7 = tf.layers.conv2d_transpose(decode_lay7, num_classes, 4, 2, padding='same',
-                                        kernel_initializer=tf.random_normal_initializer(stddev=0.001),
-                                        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+        # Decoder - 1x1 conv on vgg layer 7, preserve spatial information.
+        decode_lay7 = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, padding='same',
+                                    kernel_initializer=tf.random_normal_initializer(stddev=0.001),
+                                    kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
 
-    decode_lay4 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1,
-                                   padding= 'same',
-                                   kernel_initializer= tf.random_normal_initializer(stddev=0.001),
-                                   kernel_regularizer= tf.contrib.layers.l2_regularizer(1e-3))
+        # Decoder - Up-sample by transpose
+        up_layer7 = tf.layers.conv2d_transpose(decode_lay7, num_classes, 4, 2, padding='same',
+                                            kernel_initializer=tf.random_normal_initializer(stddev=0.001),
+                                            kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
 
-    skip_conn_lay4 = tf.add(decode_lay4, up_layer7)
+        pool4_out_scaled = tf.multiply(vgg_layer4_out, 0.01, name='pool4_out_scaled');
 
-    up_layer4 = tf.layers.conv2d_transpose(skip_conn_lay4, num_classes, 4, 2, padding='same',
-                                        kernel_initializer=tf.random_normal_initializer(stddev=0.001),
-                                        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+        decode_lay4 = tf.layers.conv2d(pool4_out_scaled, num_classes, 1,
+                                       padding= 'same',
+                                       kernel_initializer= tf.random_normal_initializer(stddev=0.001),
+                                       kernel_regularizer= tf.contrib.layers.l2_regularizer(1e-3))
 
+        skip_conn_lay4 = tf.add(decode_lay4, up_layer7)
 
-    decode_lay3 = tf.layers.conv2d(vgg_layer3_out, num_classes, 1,
-                                   padding= 'same',
-                                   kernel_initializer= tf.random_normal_initializer(stddev=0.001),
-                                   kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
-
-    skip_conn_lay3 = tf.add(decode_lay3, up_layer4)
-
-    ss_layer = tf.layers.conv2d_transpose(skip_conn_lay3, num_classes, 16, 8, padding='same',
-                                        kernel_initializer=tf.random_normal_initializer(stddev=0.001),
-                                        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+        up_layer4 = tf.layers.conv2d_transpose(skip_conn_lay4, num_classes, 4, 2, padding='same',
+                                            kernel_initializer=tf.random_normal_initializer(stddev=0.001),
+                                            kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
 
 
-    tf.Print(ss_layer, [tf.shape(ss_layer)])
+        pool3_out_scaled = tf.multiply(vgg_layer3_out, 0.0001, name='pool3_out_scaled')
 
-    return ss_layer
+        decode_lay3 = tf.layers.conv2d(pool3_out_scaled, num_classes, 1,
+                                       padding= 'same',
+                                       kernel_initializer= tf.random_normal_initializer(stddev=0.001),
+                                       kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+
+        skip_conn_lay3 = tf.add(decode_lay3, up_layer4)
+
+        ss_layer = tf.layers.conv2d_transpose(skip_conn_lay3, num_classes, 16, 8, padding='same',
+                                            kernel_initializer=tf.random_normal_initializer(stddev=0.001),
+                                            kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
+                                            name='ss_layer')
+
+        tf.Print(ss_layer, [tf.shape(ss_layer)])
+
+        return ss_layer
 
 tests.test_layers(layers)
 
@@ -112,13 +118,15 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     correct_label = tf.reshape(correct_label, (-1, num_classes))
 
     cross_entropy_loss = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=correct_label))
-    # reg_loss = tf.reduce_sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
-    # loss = cross_entropy_loss + reg_loss
+    reg_loss = tf.reduce_sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
+    # total loss = cross_entropy_loss + reg_loss
+    total_loss = tf.add(cross_entropy_loss, reg_loss, name='total_loss')
     optimizer = tf.train.AdamOptimizer(learning_rate = learning_rate)
 
-    # gs = tf.Variable(0, name='global_step', trainable=False)
-    # train_op = optimizer.minimize(loss, global_step=gs)
-    train_op = optimizer.minimize(cross_entropy_loss)
+    gs = tf.Variable(0, name='global_step', trainable=False)
+    train_op = optimizer.minimize(total_loss, global_step=gs)
+    # train_op = optimizer.minimize(cross_entropy_loss, global_step=gs)
+    # train_op = optimizer.minimize(cross_entropy_loss)
 
     return logits, train_op, cross_entropy_loss
 
@@ -141,12 +149,18 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     :param keep_prob: TF Placeholder for dropout keep probability
     :param learning_rate: TF Placeholder for learning rate
     """
+    sess.run(tf.global_variables_initializer())
+
+    print()
+    print('Training...')
 
     for epoch in range(epochs):
         for image, label in get_batches_fn(batch_size):
             _, loss = sess.run([train_op, cross_entropy_loss], feed_dict={input_image: image, correct_label: label,
-                                                                          keep_prob: 0.5, learning_rate: 0.0001})
-    pass
+                        keep_prob: 0.5, learning_rate: 0.0001})
+
+            print('Epoch {}: loss = {}'.format(epoch, loss))
+    # pass
 tests.test_train_nn(train_nn)
 
 
@@ -167,9 +181,10 @@ def run():
     #  https://www.cityscapes-dataset.com/
 
     epochs = 30
-    batch_size = 12
+    batch_size = 2
 
     with tf.Session() as sess:
+
         # Path to vgg model
         vgg_path = os.path.join(data_dir, 'vgg')
         # Create function to get batches
@@ -184,6 +199,13 @@ def run():
 
         input_image, keep_prob, layer3_out, layer4_out, layer7_out =  load_vgg(sess, vgg_path)
         layers_out = layers(layer3_out, layer4_out, layer7_out, num_classes)
+
+        # For TensorBoard - start
+        ss_graph = tf.get_default_graph()
+        writer = tf.summary.FileWriter("./tensorBoard_1")
+        writer.add_graph(ss_graph)
+        writer.close();
+        # For TensorBoard - end
 
         logits, train_op, cross_entropy_loss = optimize(layers_out, correct_label, learning_rate, num_classes)
         saver = tf.train.Saver()
