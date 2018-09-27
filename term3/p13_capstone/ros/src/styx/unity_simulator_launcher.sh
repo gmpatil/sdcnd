@@ -16,4 +16,5 @@ if [ ! -f "$USER_PROFILE" ];
     unity_path=$(cat "$USER_PROFILE")
 fi
 
-$unity_path
+# $unity_path
+echo "src/styx/unity_simulator_launcher.sh"
