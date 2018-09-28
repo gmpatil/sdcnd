@@ -40,12 +40,11 @@ class Controller(object):
 
     #def control(self, *args, **kwargs):
     def control(self, current_vel, dbw_enabled, linear_vel, angular_vel):
-        # TODO: Change the arg, kwarg list to suit your needs
+        # Change the arg, kwarg list to suit your needs
         # Return throttle, brake, steer
 
         if not dbw_enabled:
             self.throttle_controller.reset()
-            #return 1., 0., 0.
             return 0., 0., 0.
 
         current_vel = self.vel_lpf.filt(current_vel)
@@ -63,10 +62,11 @@ class Controller(object):
 
         if linear_vel == 0. and current_vel < 0.1:
             throttle = 0
-            brake = 400 # N *m - to hold car in place at stop light. Accel ~= 1m/s^2
+            brake = 400 # N *m - to hold car in place at stop light. Accel ~= 1m/s^2 # 700 for Carla.
         elif throttle < 0.1 and vel_error < 0:
             throttle = 0
             decel = max(vel_error, self.decel_limit)
             brake = abs(decel) * self.vehicle_mass * self.wheel_radius # Torque N*m
 
         return throttle, brake, steering
+        # return 1., 0., 0.
