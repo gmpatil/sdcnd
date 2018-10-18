@@ -36,14 +36,13 @@ class WaypointUpdater(object):
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
-        # Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
         rospy.Subscriber('/current_velocity', TwistStamped, self.velocity_cb)
         # rospy.Subscriber('/obstacle_waypoint', Lane, self.waypoints_cb)
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
-        # TODO: Add other member variables you need below
+        # Member variables
         self.pose = None
         self.base_lane = None
         self.waypoints_2d = None
@@ -55,7 +54,7 @@ class WaypointUpdater(object):
         self.loop()
 
     def loop(self):
-        rate = rospy.Rate(50)
+        rate = rospy.Rate(15) # 50
         while not rospy.is_shutdown():
             if self.pose and self.base_lane:
                 # Get closest waypoint
@@ -89,19 +88,20 @@ class WaypointUpdater(object):
         # lane.waypoints = self.base_lane.waypoints[closest_idx:closest_idx + LOOKAHEAD_WPS]
         # self.final_waypoints_pub.publish(lane)
 
-        final_lane = self.generate_lane()
+        final_lane = self.generate_lane(closest_idx)
         self.final_waypoints_pub.publish(final_lane)
 
-    def generate_lane(self):
+    def generate_lane(self, closest_idx):
         lane = Lane()
         lane.header = self.base_lane.header
 
-        closest_idx = self.get_closest_waypoint_idx()
+        # closest_idx = self.get_closest_waypoint_idx()
         farthest_idx = closest_idx + LOOKAHEAD_WPS
         base_waypoints_sub = self.base_lane.waypoints[closest_idx:farthest_idx]
 
         if (not self.stopLine_wp_idx) or (self.stopLine_wp_idx == -1) or (self.stopLine_wp_idx >= farthest_idx):
             lane.waypoints = base_waypoints_sub
+            # do not use new acceleration, honor target speed set for a WP in WPs load.
             # lane.waypoints = self.accelerate_waypoints(base_waypoints_sub)
         else:
             lane.waypoints = self.decelerate_waypoints(base_waypoints_sub, closest_idx)
@@ -144,18 +144,23 @@ class WaypointUpdater(object):
 
             dist = self.distance(waypoints, i, stop_idx)
 
-            if dist > DECELERATE_FROM_DIST:
-                # wp.twist.twist.linear.x has target/max  vel.
-                curr_v = wp.twist.twist.linear.x
-            elif dist > 0:
-                if not self.curr_velocity:
-                    curr_v = math.sqrt(2 * MAX_ACCEL_DECEL * dist)
-                else:
-                    curr_v = curr_v - (curr_v / dist)
+            # if dist > DECELERATE_FROM_DIST:
+            #     # wp.twist.twist.linear.x has target/max  vel.
+            #     curr_v = wp.twist.twist.linear.x
+            # elif dist > 0:
+            #     if not self.curr_velocity:
+            #         curr_v = math.sqrt(2 * MAX_ACCEL_DECEL * dist)
+            #     else:
+            #         curr_v = curr_v - (curr_v / dist)
+            #
+            #     if (curr_v < 1.) or (i >= stop_idx):
+            #         curr_v = 0.
+            # else:
+            #     curr_v = 0.
 
-                if (curr_v < 1.) or (i >= stop_idx):
-                    curr_v = 0.
-            else:
+            curr_v = math.sqrt(2 * MAX_ACCEL_DECEL * dist)
+
+            if (curr_v < 1.) or (i >= stop_idx):
                 curr_v = 0.
 
             p.twist.twist.linear.x = min(curr_v, wp.twist.twist.linear.x)

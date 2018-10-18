@@ -17,6 +17,8 @@ class Controller(object):
 
         self.yaw_controller = YawController(wheel_base, steer_ratio, 0.1, max_lat_accel, max_steer_angle)
 
+        # Throttle controller using PID controller.
+        # Intial values from code walkthru
         kp = 0.3
         ki = 0.1
         kd = 0.
@@ -53,16 +55,16 @@ class Controller(object):
         vel_error = linear_vel - current_vel
         self.last_vel = current_vel
 
-        currnet_time = rospy.get_time()
-        sample_time = currnet_time - self.last_time
-        self.last_time = currnet_time
+        current_time = rospy.get_time()
+        sample_time = current_time - self.last_time
+        self.last_time = current_time
 
         throttle = self.throttle_controller.step(vel_error, sample_time)
         brake = 0
 
         if linear_vel == 0. and current_vel < 0.1:
             throttle = 0
-            brake = 400 # N *m - to hold car in place at stop light. Accel ~= 1m/s^2 # 700 for Carla.
+            brake = 700 # N *m - to hold car in place at stop light. Accel ~= 1m/s^2 # 700 for Carla other wise 400.
         elif throttle < 0.1 and vel_error < 0:
             throttle = 0
             decel = max(vel_error, self.decel_limit)

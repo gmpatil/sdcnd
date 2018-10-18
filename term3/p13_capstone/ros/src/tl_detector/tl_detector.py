@@ -50,7 +50,7 @@ class TLDetector(object):
         self.config = yaml.load(config_string)
 
         self.is_site = self.config['is_site']
-        rospy.loginfo("RoS environment is Site: {0}\n".format(self.is_site))
+        rospy.loginfo("RoS environment is Site: {0}".format(self.is_site))
 
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
 
@@ -68,7 +68,7 @@ class TLDetector(object):
         self.loop()
 
     def loop(self):
-        rate = rospy.Rate(15)
+        rate = rospy.Rate(10)  # 15
 
         while not rospy.is_shutdown():
             if self.has_image:
