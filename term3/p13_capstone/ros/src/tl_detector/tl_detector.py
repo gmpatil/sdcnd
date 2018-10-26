@@ -13,9 +13,8 @@ from scipy.spatial import KDTree
 import numpy as np
 import threading
 
-import cv2
-
-STATE_COUNT_THRESHOLD = 2
+STATE_COUNT_THRESHOLD = 3
+STATE_CONF_THRESHOLD = 0.5 # 0.5
 
 class TLDetector(object):
     def __init__(self):
@@ -55,7 +54,7 @@ class TLDetector(object):
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
 
         self.bridge = CvBridge()
-        self.light_classifier = TLClassifier(self.is_site)
+        self.light_classifier = TLClassifier(self.is_site, STATE_CONF_THRESHOLD)
         self.listener = tf.TransformListener()
 
         self.state = TrafficLight.UNKNOWN
@@ -74,9 +73,9 @@ class TLDetector(object):
             if self.has_image:
                 light_wp, state = self.process_traffic_lights()
 
-                self.lock.acquire()
-                self.has_image = False
-                self.lock.release()
+                #self.lock.acquire()
+                #self.has_image = False
+                #self.lock.release()
 
                 '''
                 Publish upcoming red lights at camera frequency.
@@ -89,9 +88,9 @@ class TLDetector(object):
                     self.state = state
                 elif self.state_count >= STATE_COUNT_THRESHOLD:
                     self.last_state = self.state
-                    light_wp = light_wp if state == TrafficLight.RED else -1
+                    light_wp = light_wp if (state == TrafficLight.RED) or (state == TrafficLight.YELLOW) else -1
                     self.last_wp = light_wp
-                    rospy.loginfo("Light(0=R 1=Y 2=G 4=U): {0} WP:{1} ".format(state, light_wp))
+                    #rospy.loginfo("Light(0=R 1=Y 2=G 4=U): {0} WP:{1} ".format(state, light_wp))
                     self.upcoming_red_light_pub.publish(Int32(light_wp))
                 else:
                     self.upcoming_red_light_pub.publish(Int32(self.last_wp))
@@ -107,7 +106,7 @@ class TLDetector(object):
 
     def waypoints_cb(self, lane):
         self.base_waypoints = lane
-
+        
         waypoints = lane.waypoints
         if not self.waypoints_2d:
             self.waypoints_2d = [[waypoint.pose.pose.position.x, waypoint.pose.pose.position.y] for waypoint in waypoints]
@@ -129,10 +128,10 @@ class TLDetector(object):
         # rospy.loginfo("Got image.")
         self.camera_image = msg
 
-        if not self.has_image:
-            self.lock.acquire()
-            self.has_image = True
-            self.lock.release()
+        #if not self.has_image:
+        #    self.lock.acquire()
+        self.has_image = True
+        #    self.lock.release()
 
         # Process image in non-callback thread, to avoid processing stale images.
         # light_wp, state = self.process_traffic_lights()
@@ -179,12 +178,25 @@ class TLDetector(object):
             self.prev_light_loc = None
             return False
 
-        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+        enc = None
+        if hasattr(self.camera_image, 'encoding'):
+            img_encoding = self.camera_image.encoding
+            if (img_encoding == "rgb8") or (img_encoding == "bgr8"):
+                enc = img_encoding
+
+        if enc is None:
+            if self.is_site:
+                enc = "bgr8"
+            else:
+                enc = "rgb8"
+
+        #rospy.loginfo("enc " + enc)
+        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, enc)  # rgb8 vs bgr8 (openCV bgr8)
 
         # Get classification
         light_class = self.light_classifier.get_classification(cv_image)
 
-        rospy.loginfo("Light state: {0}. Object Det:{1} (0=R 1=Y 2=G 4=U)".format(light.state, light_class))
+        #rospy.loginfo("Light state: {0}. Object Det:{1} (0=R 1=Y 2=G 4=U)".format(light.state, light_class))
 
         return light_class
         # return light.state
@@ -224,6 +236,7 @@ class TLDetector(object):
 
         if closest_light:
             state = self.get_light_state(closest_light)
+            rospy.loginfo("c-pos:{0} sl-pos:{1}".format(car_position_idx, line_wp_idx))
             return line_wp_idx, state
 
         return -1, TrafficLight.UNKNOWN

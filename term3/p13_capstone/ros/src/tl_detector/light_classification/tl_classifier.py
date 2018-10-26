@@ -5,14 +5,16 @@ import datetime
 import rospy
 
 class TLClassifier(object):
-    def __init__(self, is_site):
+
+    def __init__(self, is_site, conf_threshold):
         if is_site:
-            OBJ_DET_MODEL_PATH = r'light_classification/models/frozen_inference_graph_simul_ssd_site.pb'
+            OBJ_DET_MODEL_PATH = r'light_classification/models/sim_frozen_inference_graph.pb'
         else:
-            OBJ_DET_MODEL_PATH = r'light_classification/models/frozen_inference_graph_simul_ssd_sim.pb'
+            OBJ_DET_MODEL_PATH = r'light_classification/models/sim_frozen_inference_graph.pb'
 
         self.graph = tf.Graph()
-        self.threshold = 0.5 # 0.3
+        self.threshold = conf_threshold # 0.4 # 0.5
+        self.Cntr = 0
 
         with self.graph.as_default():
             od_graph_def = tf.GraphDef()
@@ -47,27 +49,30 @@ class TLClassifier(object):
                 feed_dict={self.image_tensor: img_expand})
             end = datetime.datetime.now()
             time_diff = end - start
-            rospy.loginfo("Inference took time: {0}".format(time_diff.total_seconds()))
+            # rospy.loginfo("Inference took time: {0}".format(time_diff.total_seconds()))
 
         boxes = np.squeeze(boxes)
         scores = np.squeeze(scores)
         classes = np.squeeze(classes).astype(np.int32)
 
         rospy.loginfo("Obj Det top score: {0}. Class (1=G 2=R 3=Y 4=U): {1}".format(scores[0], classes[0]))
+        #rospy.loginfo("Obj Det top score: {0}. Class (1=G 2=R 3=Y 4=U): {1} c: {2}".format(scores[0], classes[0], self.Cntr))
+        #cv2.imwrite("tmpImgs/{0:05d}_{1}".format(self.Cntr, classes[0]) + ".jpg", image)
+        #self.Cntr = self.Cntr + 1
 
         # Object Det: 1=G 2=R 3=Y 4=U
         # TrafficLght Const: 0=R 1=Y 2=G 4=U
         if scores[0] > self.threshold:
             if classes[0] == 1:
-                rospy.loginfo("Obj Det Ret Green(1=>2): {0}.".format(TrafficLight.GREEN))
+                #rospy.loginfo("Obj Det Ret Green(1=>2): {0}.".format(TrafficLight.GREEN))
                 return TrafficLight.GREEN
             elif classes[0] == 2:
-                rospy.loginfo("Obj Det Ret Red(2=>0): {0}.".format(TrafficLight.RED))
+                #rospy.loginfo("Obj Det Ret Red(2=>0): {0}.".format(TrafficLight.RED))
                 return TrafficLight.RED
             elif classes[0] == 3:
-                rospy.loginfo("Obj Det Ret Yellow(3=>1): {0}.".format(TrafficLight.YELLOW))
+                #rospy.loginfo("Obj Det Ret Yellow(3=>1): {0}.".format(TrafficLight.YELLOW))
                 return TrafficLight.YELLOW
-        else:
-            rospy.loginfo("Obj Det score below threshold of {0}, returning unknown 4.".format(self.threshold))
+        #else:
+            #rospy.loginfo("Obj Det score below threshold of {0}, returning unknown 4.".format(self.threshold))
 
         return TrafficLight.UNKNOWN
