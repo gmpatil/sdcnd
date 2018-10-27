@@ -178,18 +178,19 @@ class TLDetector(object):
             self.prev_light_loc = None
             return False
 
-        enc = None
-        if hasattr(self.camera_image, 'encoding'):
-            img_encoding = self.camera_image.encoding
-            if (img_encoding == "rgb8") or (img_encoding == "bgr8"):
-                enc = img_encoding
+        # enc = None
+        # if hasattr(self.camera_image, 'encoding'):
+        #     img_encoding = self.camera_image.encoding
+        #     if (img_encoding == "rgb8") or (img_encoding == "bgr8"):
+        #         enc = img_encoding
+        #
+        # if enc is None:
+        #     if self.is_site:
+        #         enc = "bgr8"
+        #     else:
+        #         enc = "rgb8"
 
-        if enc is None:
-            if self.is_site:
-                enc = "bgr8"
-            else:
-                enc = "rgb8"
-
+        enc = "rgb8" # as we have trained both site and simulator models using JPG images.
         #rospy.loginfo("enc " + enc)
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, enc)  # rgb8 vs bgr8 (openCV bgr8)
 

@@ -8,7 +8,7 @@ class TLClassifier(object):
 
     def __init__(self, is_site, conf_threshold):
         if is_site:
-            OBJ_DET_MODEL_PATH = r'light_classification/models/sim_frozen_inference_graph.pb'
+            OBJ_DET_MODEL_PATH = r'light_classification/models/site_frozen_inference_graph.pb'
         else:
             OBJ_DET_MODEL_PATH = r'light_classification/models/sim_frozen_inference_graph.pb'
 
